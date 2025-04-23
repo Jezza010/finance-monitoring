@@ -33,7 +33,4 @@ replay_pid*
 # шаблон мы храним, а реальный — нет
 /src/main/resources/config.properties
 
-# ---------------------
-# Database scripts
-/database/data.sql
 
