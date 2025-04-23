@@ -34,6 +34,6 @@ replay_pid*
 /src/main/resources/config.properties
 
 # ---------------------
-# Database scripts (если не хотите пушить дампы)
+# Database scripts
 /database/data.sql
 
