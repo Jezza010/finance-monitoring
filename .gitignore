@@ -1,16 +1,7 @@
-# Compiled class file
+# ---------------------
+# Java / Maven
+# ---------------------
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
@@ -19,6 +10,30 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Maven target folder
+/target/
+
+# ---------------------
+# Logs and temp
+# ---------------------
+*.log
 hs_err_pid*
 replay_pid*
+.mtj.tmp/
+
+# ---------------------
+# IDE
+# ---------------------
+/.idea/
+/*.iml
+
+# ---------------------
+# Configuration
+# ---------------------
+# шаблон мы храним, а реальный — нет
+/src/main/resources/config.properties
+
+# ---------------------
+# Database scripts (если не хотите пушить дампы)
+/database/data.sql
+
