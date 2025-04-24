@@ -1,0 +1,75 @@
+openapi: 3.0.0
+info:
+  title: Simple Transaction API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/transactions:
+    get:
+      summary: Получить все транзакции
+      responses:
+        '200':
+          description: Список транзакций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+    post:
+      summary: Добавить транзакцию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '201':
+          description: Транзакция добавлена
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        personType:
+          type: string
+          example: "Физлицо"
+        transactionType:
+          type: string
+          example: "Пополнение"
+        dateTime:
+          type: string
+          example: "2025-04-23T14:00:00"
+        comment:
+          type: string
+          example: "Оплата товара"
+        amount:
+          type: number
+          format: double
+          example: 5000.75
+        status:
+          type: string
+          example: "Завершено"
+        senderBank:
+          type: string
+          example: "Сбербанк"
+        receiverBank:
+          type: string
+          example: "Тинькофф"
+        receiverINN:
+          type: string
+          example: "1234567890"
+        receiverAccount:
+          type: string
+          example: "40817810000001234567"
+        category:
+          type: string
+          example: "Покупка"
+        phone:
+          type: string
+          example: "+79261234567"
