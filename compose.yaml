@@ -1,0 +1,40 @@
+version: '1.0'
+
+volumes:
+  processing_center_data:
+
+networks:
+  dev_backend:
+
+services:
+
+  pg_db:
+    image: 'postgres:latest'
+    container_name: finance_monitoring_pg_db
+    environment:
+      POSTGRES_DB: 'finance_db'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_USER: 'postgres'
+    ports:
+      - '5438:5432'
+    volumes:
+      - ./services/finance_monitoring_data:/var/lib/postgresql/data
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - dev_backend
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    container_name: pgadmin
+    depends_on:
+      - pg_db
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "aaa@yandex.ru"
+      PGADMIN_DEFAULT_PASSWORD: "postgres"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - ./services/pgadmin:/var/lib/pgadmin
+    networks:
+      - dev_backend
