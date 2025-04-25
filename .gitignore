@@ -33,4 +33,10 @@ replay_pid*
 # шаблон мы храним, а реальный — нет
 /src/main/resources/config.properties
 
+# ---------------------
+# Docker Compose
+# ---------------------
+# тома подключенных services
+services
+
 
