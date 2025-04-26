@@ -17,6 +17,7 @@ public class PersonType extends Identity<Integer> {
 
     private Integer id;
     private String personTypeName;
+    private boolean removed;
 
     @Override
     protected void validateId() {}
@@ -25,11 +26,11 @@ public class PersonType extends Identity<Integer> {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         PersonType that = (PersonType) o;
-        return Objects.equals(personTypeName, that.personTypeName);
+        return removed == that.removed && Objects.equals(personTypeName, that.personTypeName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(personTypeName);
+        return Objects.hash(personTypeName, removed);
     }
 }

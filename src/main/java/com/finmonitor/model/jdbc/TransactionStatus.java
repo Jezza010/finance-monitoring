@@ -21,6 +21,7 @@ public class TransactionStatus extends Identity<Integer> {
     private boolean isCompleted;
     private boolean isSuccessful;
     private boolean isDeleted;
+    private boolean removed;
 
     @Override
     protected void validateId() {}
@@ -29,11 +30,11 @@ public class TransactionStatus extends Identity<Integer> {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         TransactionStatus that = (TransactionStatus) o;
-        return isDeleted == that.isDeleted && Objects.equals(transactionStatusName, that.transactionStatusName);
+        return isDeleted == that.isDeleted && removed == that.removed && Objects.equals(transactionStatusName, that.transactionStatusName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(transactionStatusName, isDeleted);
+        return Objects.hash(transactionStatusName, isDeleted, removed);
     }
 }

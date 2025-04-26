@@ -17,6 +17,7 @@ public class Category extends Identity<Integer> {
 
     private Integer id;
     private String categoryName;
+    private boolean removed;
 
     @Override
     protected void validateId() {}
@@ -25,11 +26,11 @@ public class Category extends Identity<Integer> {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Category category = (Category) o;
-        return Objects.equals(categoryName, category.categoryName);
+        return removed == category.removed && Objects.equals(categoryName, category.categoryName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(categoryName);
+        return Objects.hash(categoryName, removed);
     }
 }

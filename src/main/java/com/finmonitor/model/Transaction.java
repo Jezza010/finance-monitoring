@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Transaction {
-
+    
     public long id;
     public String personType;
     public String transactionType;
