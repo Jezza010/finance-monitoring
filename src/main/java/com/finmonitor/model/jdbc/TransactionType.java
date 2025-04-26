@@ -18,6 +18,7 @@ public class TransactionType extends Identity<Integer> {
     private Integer id;
     private String transactionTypeName;
     private String sign_operator;
+    private boolean removed;
 
     @Override
     protected void validateId() {}
@@ -26,11 +27,11 @@ public class TransactionType extends Identity<Integer> {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         TransactionType that = (TransactionType) o;
-        return Objects.equals(transactionTypeName, that.transactionTypeName) && Objects.equals(sign_operator, that.sign_operator);
+        return removed == that.removed && Objects.equals(transactionTypeName, that.transactionTypeName) && Objects.equals(sign_operator, that.sign_operator);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(transactionTypeName, sign_operator);
+        return Objects.hash(transactionTypeName, sign_operator, removed);
     }
 }
