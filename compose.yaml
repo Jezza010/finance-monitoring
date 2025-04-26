@@ -19,7 +19,7 @@ services:
       - '5438:5432'
     volumes:
       - ./services/finance_monitoring_data:/var/lib/postgresql/data
-      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./src/main/resources:/docker-entrypoint-initdb.d
     networks:
       - dev_backend
 
