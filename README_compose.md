@@ -28,7 +28,3 @@
 4. Можно пользоваться!
 
 ---
-
-
-Создание бд
-`sudo -u postgres psql < database/schema.sql`

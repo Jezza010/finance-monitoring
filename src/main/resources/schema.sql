@@ -13,23 +13,24 @@ create schema if not exists storage authorization admin; --postgres;
 -- Справочник: Типы лиц
 CREATE TABLE IF NOT EXISTS storage.person_type (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    person_type_name VARCHAR(50) UNIQUE NOT NULL
 );
 
 -- Справочник: Типы транзакций
 CREATE TABLE IF NOT EXISTS storage.transaction_type (
     id SERIAL PRIMARY KEY,
-    transactionTypeName VARCHAR(50) UNIQUE NOT NULL,
+    transaction_type_name VARCHAR(50) UNIQUE NOT NULL,
     sign_operator VARCHAR(1) UNIQUE NOT NULL
 );
 
 -- Справочник: Статусы транзакций
 CREATE TABLE IF NOT EXISTS storage.transaction_status (
     id SERIAL PRIMARY KEY,
-    transactionStatusName VARCHAR(50) UNIQUE NOT NULL,
-    isImmutable BOOLEAN,
-    isCompleted BOOLEAN,
-    isDeleted BOOLEAN
+    transaction_status_name VARCHAR(50) UNIQUE NOT NULL,
+    is_immutable BOOLEAN,
+    is_completed BOOLEAN,
+    is_successful BOOLEAN,
+    is_deleted BOOLEAN
 );
 
 -- Справочник: Категории
