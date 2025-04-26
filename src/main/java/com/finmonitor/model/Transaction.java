@@ -1,6 +1,15 @@
 package com.finmonitor.model;
 
+
+import lombok.*;
+
+@Getter
+@Setter
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class Transaction {
+
     public long id;
     public String personType;
     public String transactionType;
