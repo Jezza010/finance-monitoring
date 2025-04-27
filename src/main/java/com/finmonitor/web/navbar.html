@@ -1,0 +1,85 @@
+<div class="container">
+    <!-- Навигация -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <a class="navbar-brand" href="#">Финансовый мониторинг</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Главная</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="transaction-form.html">Ввод транзакции</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="transaction-table.html">Транзакции</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="reports.html">Отчеты</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="btn-nav-logo">Авторизация<img src="img/login.png" style="padding-left: 10px;" alt="login"></a>
+                </li>
+            </ul>
+
+            <!--  Модальное окно формы авторизации -->
+
+            <div class="modal" id="loginModal">
+                <div class="modal__content">
+                    <button class="modal__close-button"><img src="./img/close.svg" alt="Закрыть"></button>
+                    <h1 class="modal__title" text align="center">Авторизация</h1>
+                    <p class="modal__description">
+
+                    <form class="b" action="" method="post">
+
+                        <label>
+                            <input type="text" id="login" name="login" placeholder="Логин" required>
+                        </label>
+                        <label>
+                            <br>
+                            <input type="password" id="lpassword" name="lpassword" placeholder="Пароль" required>
+                        </label>
+                        <br>
+                        <input class="send" type="submit" name="submit" value="Войти">
+                    </form>
+                    <p text align="center">Нет аккаунта? <a href="#" id="register-link">Зарегистрироваться</a></p>
+                    </p>
+                    </p>
+
+                </div>
+            </div>
+            <!-- -->
+
+            <!-- Модальное окно для регистрации -->
+            <div class="modal" id="registerModal">
+                <div class="modal__content">
+                    <button class="modal__close-button"><img src="./img/close.svg" alt="Закрыть"></button>
+                    <h1 class="modal__title" text align="center">Регистрация</h1>
+                    <p class="modal__description">
+                    <form class="d" action="" method="post">
+
+                        <label>
+                            <input type="text" id="username" name="username" placeholder="Имя пользователя" required>
+                        </label>
+                        <br>
+
+                        <label>
+                            <input type="password" id="password" name="password" placeholder="Пароль" required>
+                        </label>
+                        <br>
+                        <label>
+                            <input type="password" id="confirm_password" name="confirm_password"
+                                   placeholder="Подтвердите пароль" required>
+                        </label>
+                        <br>
+                        <label>
+                            <input class="send" type="submit" value="Зарегистрироваться"> </label>
+                        </label>
+                    </form>
+                    </p>
+                </div>
+            </div>
+            <!-- -->
+        </div>
+    </nav>
+</div>
+    <script src="js/script.js"></script>
