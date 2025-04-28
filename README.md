@@ -30,4 +30,5 @@
 
 ## Запуск БД:
 
+Создание бд - 
 `sudo -u postgres psql < database/schema.sql`
