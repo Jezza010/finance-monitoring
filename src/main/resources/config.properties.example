@@ -1,4 +1,4 @@
-# Параметры БД — скопируй и переименуй в config.properties
-db.url=jdbc:postgresql://localhost:5432/finmonitor
-db.user=postgres
-db.password=YOUR_PASSWORD_HERE
+# Параметры БД — скопируй и переименуй в application.properties
+datasource.db.url=jdbc:postgresql://localhost:PORT/DATABASE_NAME
+datasource.db.user=postgres
+datasource.db.password=YOUR_PASSWORD_HERE
