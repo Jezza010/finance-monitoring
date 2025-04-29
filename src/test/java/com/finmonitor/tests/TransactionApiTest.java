@@ -17,18 +17,7 @@ public class TransactionApiTest {
     }
 
     @Test
-    void testGetAllTransactions() {
-        given()
-                .when()
-                .get(BASE_URL + "transaction")
-                .then()
-                .statusCode(200)
-                .contentType(ContentType.JSON)
-                .body("$", not(empty()));
-    }
-
-    @Test
-    void testAddTransaction() {
+    void testAddAndGetTransactions() {
         String jsonInputString = "{"
                 + "\"personType\": \"Физическое лицо\","
                 + "\"transactionType\": \"Поступление\","
@@ -53,6 +42,14 @@ public class TransactionApiTest {
                 .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("dateTime", notNullValue());
+
+        given()
+                .when()
+                .get(BASE_URL + "transaction")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("$", not(empty()));
     }
 
     @Test
