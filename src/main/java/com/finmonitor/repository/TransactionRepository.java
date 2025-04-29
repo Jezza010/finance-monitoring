@@ -225,7 +225,7 @@ public class TransactionRepository {
 
     public int getCompletedTransactions(String period) {
         String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE status = 'COMPLETED') AND " + periodFilter;
+        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'COMPLETED') AND " + periodFilter;
 
         try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
@@ -239,7 +239,7 @@ public class TransactionRepository {
 
     public int getCancelledTransactions(String period) {
         String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE status = 'CANCELLED') AND " + periodFilter;
+        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'CANCELLED') AND " + periodFilter;
 
         try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
@@ -281,14 +281,14 @@ public class TransactionRepository {
 
     public Map<String, Double> getCategoryStats(String period) {
         String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT c.category, SUM(t.amount) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE " + periodFilter + " GROUP BY c.category";
+        String sql = "SELECT c.name, SUM(t.amount) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE " + periodFilter + " GROUP BY c.name";
 
         Map<String, Double> categoryStats = new HashMap<>();
         try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                categoryStats.put(rs.getString("category"), rs.getDouble("SUM(amount)"));
+                categoryStats.put(rs.getString(1), rs.getDouble(2));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);

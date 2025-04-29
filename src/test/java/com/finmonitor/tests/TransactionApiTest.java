@@ -75,10 +75,87 @@ public class TransactionApiTest {
     }
 
     @Test
+    void testGetCreditCount() {
+        given()
+                .when()
+                .get(BASE_URL + "credit_count?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
     void testGetSumIncome() {
         given()
                 .when()
                 .get(BASE_URL + "sum_income?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testGetSumOutcome() {
+        given()
+                .when()
+                .get(BASE_URL + "sum_outcome?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testGetCompletedTransactions() {
+        given()
+                .when()
+                .get(BASE_URL + "completed_transactions?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testGetCancelledTransactions() {
+        given()
+                .when()
+                .get(BASE_URL + "cancelled_transactions?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testBankIncomeStats() {
+        given()
+                .when()
+                .get(BASE_URL + "bank_income_stats?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testBankOutcomeStats() {
+        given()
+                .when()
+                .get(BASE_URL + "bank_outcome_stats?period=M")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+
+    @Test
+    void testCategoryStats() {
+        given()
+                .when()
+                .get(BASE_URL + "category_stats?period=M")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)

@@ -86,7 +86,34 @@ public class TransactionHandler {
         handleReq(exchange, query -> repo.getDebetCount(query.get("period")));
     }
 
+    public void creditCount(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getCreditCount(query.get("period")));
+    }
+
     public void sumIncome(HttpExchange exchange) {
         handleReq(exchange, query -> repo.getSumIncome(query.get("period")));
+    }
+
+    public void sumOutcome(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getSumOutcome(query.get("period")));
+    }
+
+    public void completedTransactions(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getCompletedTransactions(query.get("period")));
+    }
+
+    public void cancelledTransactions(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getCancelledTransactions(query.get("period")));
+    }
+
+    public void bankIncomeStats(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getBankIncomeStats(query.get("period")));
+    }
+
+    public void bankOutcomeStats(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getBankOutcomeStats(query.get("period")));
+    }
+    public void categoryStats(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.getCategoryStats(query.get("period")));
     }
 }
