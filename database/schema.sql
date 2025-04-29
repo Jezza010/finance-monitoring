@@ -41,3 +41,41 @@ CREATE TABLE transactions (
     receiver_inn VARCHAR(11) CHECK (receiver_inn ~ '^\d{11}$'),
     receiver_phone VARCHAR(16) CHECK (receiver_phone ~ '^(\+7|8)\d{10}$')
 );
+
+CREATE VIEW transactions_full_view AS
+SELECT
+    t.id,
+
+    -- заменяем person_type_id на имя
+    pt.name AS person_type,
+
+    -- заменяем transaction_type_id на имя
+    tt.name AS transaction_type,
+
+    -- заменяем status_id на имя
+    ts.name AS status,
+
+    -- заменяем category_id на имя (может быть NULL)
+    c.name AS category,
+
+    -- остальные поля как есть
+    t.transaction_datetime,
+    t.comment,
+    t.amount,
+    t.sender_bank,
+    t.receiver_bank,
+    t.account_number,
+    t.receiver_account_number,
+    t.receiver_inn,
+    t.receiver_phone
+
+FROM
+    transactions t
+JOIN
+    person_types pt ON t.person_type_id = pt.id
+JOIN
+    transaction_types tt ON t.transaction_type_id = tt.id
+JOIN
+    transaction_statuses ts ON t.status_id = ts.id
+LEFT JOIN
+    categories c ON t.category_id = c.id;

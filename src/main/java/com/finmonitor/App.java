@@ -1,7 +1,7 @@
 package com.finmonitor;
 
 import com.finmonitor.config.JDBCConnector;
-//import com.finmonitor.http.TransactionHandler;
+import com.finmonitor.http.TransactionHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
@@ -18,7 +18,11 @@ public class App {
             e.printStackTrace();
         }
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
-//        server.createContext("/api/v1/transaction", new TransactionHandler());
+        var handler = new TransactionHandler();
+        server.createContext("/api/transaction", handler::transaction);
+        server.createContext("/api/transactions_count", handler::transactionsCount);
+        server.createContext("/api/debet_count", handler::debetCount);
+        server.createContext("/api/sum_income", handler::sumIncome);
         server.setExecutor(null);
         server.start();
         System.out.println("The server is running on port 8080...");

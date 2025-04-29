@@ -1,26 +1,26 @@
 package com.finmonitor.model;
 
 
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
-@ToString
-@AllArgsConstructor
+import java.math.BigDecimal;
+
+@Data
 @NoArgsConstructor
 public class Transaction {
-    
-    public long id;
+    public Long id;
     public String personType;
     public String transactionType;
+    public String category;
     public String dateTime;
     public String comment;
-    public double amount;
+    public BigDecimal amount;
     public String status;
     public String senderBank;
     public String receiverBank;
+    public String accountNumber;
+    public String receiverAccountNumber;
     public String receiverINN;
-    public String receiverAccount;
-    public String category;
-    public String phone;
+    public String receiverPhone;
 }

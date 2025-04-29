@@ -28,6 +28,233 @@ paths:
       responses:
         '201':
           description: Транзакция добавлена
+  /api/transactions_count:
+    get:
+      summary: Получить количество всех транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Количество транзакций
+          content:
+            application/json:
+              schema:
+                type: integer
+  /api/debet_count:
+    get:
+      summary: Получить количество дебетовых транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Количество дебетовых транзакций
+          content:
+            application/json:
+              schema:
+                type: integer
+  /api/credit_count:
+    get:
+      summary: Получить количество кредитовых транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Количество кредитовых транзакций
+          content:
+            application/json:
+              schema:
+                type: integer
+  /api/sum_income:
+    get:
+      summary: Получить сумму всех входящих транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Сумма входящих транзакций
+          content:
+            application/json:
+              schema:
+                type: number
+                format: double
+  /api/sum_outcome:
+    get:
+      summary: Получить сумму всех исходящих транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Сумма исходящих транзакций
+          content:
+            application/json:
+              schema:
+                type: number
+                format: double
+  /api/completed_transactions:
+    get:
+      summary: Получить количество завершенных транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Количество завершенных транзакций
+          content:
+            application/json:
+              schema:
+                type: integer
+  /api/cancelled_transactions:
+    get:
+      summary: Получить количество отмененных транзакций за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Количество отмененных транзакций
+          content:
+            application/json:
+              schema:
+                type: integer
+  /api/bank_income_stats:
+    get:
+      summary: Получить статистику доходов банка за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Статистика доходов банка
+          content:
+            application/json:
+              schema:
+                type: number
+                format: double
+  /api/bank_outcome_stats:
+    get:
+      summary: Получить статистику расходов банка за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Статистика расходов банка
+          content:
+            application/json:
+              schema:
+                type: number
+                format: double
+  /api/category_stats:
+    get:
+      summary: Получить статистику по категориям за период
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "M"
+            enum:
+              - W
+              - M
+              - Q
+              - Y
+      responses:
+        '200':
+          description: Статистика по категориям
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: number
+                  format: double
 components:
   schemas:
     Transaction:
