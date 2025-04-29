@@ -1,9 +1,9 @@
 package com.finmonitor.model.jdbc;
 
 
-import com.finmonitor.model.Identity;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
@@ -11,7 +11,7 @@ import java.util.Objects;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class TransactionType extends Identity<Integer> {
+public class TransactionType  implements Serializable {
 
     // Назначение: Описывает возможные типы операций.
 
@@ -19,9 +19,6 @@ public class TransactionType extends Identity<Integer> {
     private String transactionTypeName;
     private String sign_operator;
     private boolean removed;
-
-    @Override
-    protected void validateId() {}
 
     @Override
     public boolean equals(Object o) {

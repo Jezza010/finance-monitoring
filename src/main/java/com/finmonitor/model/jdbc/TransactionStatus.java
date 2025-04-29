@@ -1,9 +1,9 @@
 package com.finmonitor.model.jdbc;
 
 
-import com.finmonitor.model.Identity;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
@@ -11,7 +11,7 @@ import java.util.Objects;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class TransactionStatus extends Identity<Integer> {
+public class TransactionStatus  implements Serializable {
 
     // Назначение: Описывает возможные статусы операций.
 
@@ -22,9 +22,6 @@ public class TransactionStatus extends Identity<Integer> {
     private boolean isSuccessful;
     private boolean isDeleted;
     private boolean removed;
-
-    @Override
-    protected void validateId() {}
 
     @Override
     public boolean equals(Object o) {

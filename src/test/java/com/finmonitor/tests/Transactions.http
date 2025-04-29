@@ -1,0 +1,11 @@
+# примеры API-запросов
+
+ @baseUrl = http://localhost:8080/api/v1/transaction/list
+
+###
+
+# Получение списка транзакций:
+GET {{baseUrl}}
+Content-Type: application/json
+
+###
