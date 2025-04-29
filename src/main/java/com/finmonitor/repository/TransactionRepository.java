@@ -1,6 +1,6 @@
 package com.finmonitor.repository;
 
-import com.finmonitor.model.Transaction;
+import com.finmonitor.model.jdbc.Transaction;
 import com.finmonitor.util.DatabaseConnector;
 
 import java.sql.*;

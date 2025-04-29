@@ -1,7 +1,8 @@
 package com.finmonitor.dao.jdbc;
 
+
 import com.finmonitor.dao.Dao;
-import com.finmonitor.model.Transaction;
+import com.finmonitor.model.jdbc.Transaction;
 
 import java.util.List;
 import java.util.Optional;

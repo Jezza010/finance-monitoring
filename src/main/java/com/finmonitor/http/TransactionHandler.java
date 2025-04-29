@@ -1,6 +1,6 @@
 package com.finmonitor.http;
 
-import com.finmonitor.model.Transaction;
+import com.finmonitor.model.jdbc.Transaction;
 import com.finmonitor.repository.TransactionRepository;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;

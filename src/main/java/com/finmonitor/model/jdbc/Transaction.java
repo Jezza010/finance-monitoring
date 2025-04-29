@@ -1,4 +1,4 @@
-package com.finmonitor.model;
+package com.finmonitor.model.jdbc;
 
 
 import lombok.Data;
