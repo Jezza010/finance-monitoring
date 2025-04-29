@@ -15,7 +15,8 @@ public class Transaction {
     public String transactionType;
     public String dateTime;
     public String comment;
-    public double amount;
+//    public double amount;
+    public double sum;
     public String status;
     public String senderBank;
     public String receiverBank;

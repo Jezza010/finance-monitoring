@@ -12,7 +12,7 @@ import java.util.Properties;
 
 
 @Slf4j
-public class JDBCConfig {
+public class JDBCConnector {
 
     private static final HikariDataSource source;
 
@@ -38,7 +38,7 @@ public class JDBCConfig {
         log.info("HirakiCP dataSource initialized");
     }
 
-    private JDBCConfig() {}
+    private JDBCConnector() {}
 
     public static Connection getConnection() {
         Connection connection;
