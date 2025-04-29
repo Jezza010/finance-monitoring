@@ -46,10 +46,10 @@ public class TransactionRepository {
             }
             stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.parse(t.getDateTime())));
             stmt.setString(6, t.getComment());
-            stmt.setBigDecimal(7, t.getAmount());
+            stmt.setDouble(7, t.getAmount());
             stmt.setString(8, t.getSenderBank());
             stmt.setString(9, t.getReceiverBank());
-            stmt.setString(10, t.getAccountNumber());
+            stmt.setString(10, t.getSenderAccountNumber());
             stmt.setString(11, t.getReceiverAccountNumber());
             stmt.setString(12, t.getReceiverINN());
             stmt.setString(13, t.getReceiverPhone());
@@ -131,7 +131,7 @@ public class TransactionRepository {
         t.setTransactionType(rs.getString("transaction_type"));
         t.setDateTime(rs.getTimestamp("transaction_datetime").toString());
         t.setComment(rs.getString("comment"));
-        t.setAmount(rs.getBigDecimal("amount"));
+        t.setAmount(rs.getDouble("amount"));
         t.setStatus(rs.getString("status"));
         t.setSenderBank(rs.getString("sender_bank"));
         t.setReceiverBank(rs.getString("receiver_bank"));

@@ -4,7 +4,6 @@ package com.finmonitor.model.jdbc;
 import lombok.*;
 
 import java.io.Serializable;
-import java.sql.Date;
 import java.util.Objects;
 
 @Getter
@@ -16,8 +15,8 @@ import java.util.Objects;
 public class Transaction  implements Serializable {
 
     public Long id;
-    public Date transaction_datetime;
-    public double sum;
+    public String dateTime;
+    public double amount;
     public String comment;
     public String senderBank;
     public String senderAccountNumber;
@@ -25,18 +24,18 @@ public class Transaction  implements Serializable {
     public String receiverBank;
     public String receiverAccountNumber;
     public String receiverPhone;
-    public String personTypeId;
-    public String transactionTypeId;
-    public String transactionStatusId;
-    public String categoryId;
+    public String personType;
+    public String transactionType;
+    public String status;
+    public String category;
     public Long userId;
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Transaction that = (Transaction) o;
-        return Double.compare(sum, that.sum) == 0 &&
-                Objects.equals(transaction_datetime, that.transaction_datetime) &&
+        return Double.compare(amount, that.amount) == 0 &&
+                Objects.equals(dateTime, that.dateTime) &&
                 Objects.equals(comment, that.comment) &&
                 Objects.equals(senderBank, that.senderBank) &&
                 Objects.equals(senderAccountNumber, that.senderAccountNumber) &&
@@ -44,20 +43,20 @@ public class Transaction  implements Serializable {
                 && Objects.equals(receiverBank, that.receiverBank)
                 && Objects.equals(receiverAccountNumber, that.receiverAccountNumber)
                 && Objects.equals(receiverPhone, that.receiverPhone)
-                && Objects.equals(personTypeId, that.personTypeId)
-                && Objects.equals(transactionTypeId, that.transactionTypeId)
-                && Objects.equals(transactionStatusId, that.transactionStatusId)
-                && Objects.equals(categoryId, that.categoryId)
+                && Objects.equals(personType, that.personType)
+                && Objects.equals(transactionType, that.transactionType)
+                && Objects.equals(status, that.status)
+                && Objects.equals(category, that.category)
                 && Objects.equals(userId, that.userId);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(
-                transaction_datetime, sum,
+                dateTime, amount,
                 comment,
                 senderBank, senderAccountNumber,
                 receiverINN, receiverBank, receiverAccountNumber, receiverPhone,
-                personTypeId, transactionTypeId, transactionStatusId, categoryId, userId);
+                personType, transactionType, status, category, userId);
     }
 }
