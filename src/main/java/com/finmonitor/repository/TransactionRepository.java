@@ -1,7 +1,7 @@
 package com.finmonitor.repository;
 
+import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.model.jdbc.Transaction;
-import com.finmonitor.util.DatabaseConnector;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -14,7 +14,7 @@ public class TransactionRepository {
 
     public List<Transaction> findAll() {
         List<Transaction> list = new ArrayList<>();
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM transactions_full_view")) {
 
@@ -28,7 +28,7 @@ public class TransactionRepository {
     }
 
     public void save(Transaction t) {
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO transactions (person_type_id, transaction_type_id, status_id, category_id, transaction_datetime, comment, amount, sender_bank, receiver_bank, account_number, receiver_account_number, receiver_inn, receiver_phone) " +
                              "VALUES ((SELECT id FROM person_types WHERE name = ?)," +
@@ -105,7 +105,7 @@ public class TransactionRepository {
             params.add(filters.get("category"));
         }
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
             for (int i = 0; i < params.size(); i++) {
@@ -157,7 +157,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT COUNT(*) FROM transactions WHERE " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -171,7 +171,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'DEBET') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -185,7 +185,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'CREDIT') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -199,7 +199,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'INCOME') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -213,7 +213,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'OUTCOME') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -227,7 +227,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE status = 'COMPLETED') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -241,7 +241,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE status = 'CANCELLED') AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -255,7 +255,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT SUM(amount) FROM transactions WHERE sender_bank = receiver_bank AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -269,7 +269,7 @@ public class TransactionRepository {
         String periodFilter = getPeriodFilter(period);
         String sql = "SELECT SUM(amount) FROM transactions WHERE sender_bank != receiver_bank AND " + periodFilter;
 
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -284,7 +284,7 @@ public class TransactionRepository {
         String sql = "SELECT c.category, SUM(t.amount) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE " + periodFilter + " GROUP BY c.category";
 
         Map<String, Double> categoryStats = new HashMap<>();
-        try (Connection conn = DatabaseConnector.connect();
+        try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

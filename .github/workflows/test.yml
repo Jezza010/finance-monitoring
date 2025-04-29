@@ -15,7 +15,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: 'YOUR_PASSWORD_HERE'
+          POSTGRES_PASSWORD: YOUR_PASSWORD_HERE
           POSTGRES_DB: finance_db
         ports:
           - 5432:5432
@@ -49,7 +49,7 @@ jobs:
           psql -h localhost -U postgres -d finance_db -f database/schema.sql
           psql -h localhost -U postgres -d finance_db -f database/data.sql
         env:
-          PGPASSWORD: 'YOUR_PASSWORD_HERE'
+          PGPASSWORD: YOUR_PASSWORD_HERE
 
       - name: Tests
         run: |
