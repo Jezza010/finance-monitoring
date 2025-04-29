@@ -4,8 +4,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -18,8 +18,7 @@ public class JDBCConnector {
 
     static {
         Properties properties = new Properties();
-        String fileName = ClassLoader.getSystemResource("application.properties").getFile();
-        try (FileReader reader = new FileReader(fileName)) {
+        try (InputStream reader = ClassLoader.getSystemResourceAsStream("application.properties")) {
             properties.load(reader);
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -52,4 +52,9 @@ jobs:
           PGPASSWORD: YOUR_PASSWORD_HERE
 
       - name: Tests
-        run: mvn test
+        run: |
+          mvn package -DskipTests
+          java -jar target/app.jar &
+          pid=$!
+          mvn test
+          kill $pid
