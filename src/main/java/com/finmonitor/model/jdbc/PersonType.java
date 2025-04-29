@@ -1,9 +1,9 @@
 package com.finmonitor.model.jdbc;
 
 
-import com.finmonitor.model.Identity;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
@@ -11,7 +11,7 @@ import java.util.Objects;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class PersonType extends Identity<Integer> {
+public class PersonType  implements Serializable {
 
     // -- Назначение: Описывает юридический статус владельца транзакции.
 
@@ -20,14 +20,10 @@ public class PersonType extends Identity<Integer> {
     private boolean removed;
 
     public PersonType(Integer id, Integer id1, String personTypeName, boolean removed) {
-        super(id);
-        this.id = id1;
+        this.id = id;
         this.personTypeName = personTypeName;
         this.removed = removed;
     }
-
-    @Override
-    protected void validateId() {}
 
     @Override
     public boolean equals(Object o) {

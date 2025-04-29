@@ -1,9 +1,9 @@
 package com.finmonitor.model.jdbc;
 
 
-import com.finmonitor.model.Identity;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Getter
@@ -11,15 +11,12 @@ import java.util.Objects;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class User extends Identity<Long> {
+public class User  implements Serializable {
 
     private Long id;
     private String login;
     private String password;
     private boolean removed;
-
-    @Override
-    protected void validateId() {}
 
     @Override
     public boolean equals(Object o) {
