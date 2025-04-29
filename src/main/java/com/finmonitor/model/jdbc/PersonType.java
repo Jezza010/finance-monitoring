@@ -19,6 +19,13 @@ public class PersonType extends Identity<Integer> {
     private String personTypeName;
     private boolean removed;
 
+    public PersonType(Integer id, Integer id1, String personTypeName, boolean removed) {
+        super(id);
+        this.id = id1;
+        this.personTypeName = personTypeName;
+        this.removed = removed;
+    }
+
     @Override
     protected void validateId() {}
 

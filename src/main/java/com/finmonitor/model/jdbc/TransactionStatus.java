@@ -23,6 +23,17 @@ public class TransactionStatus extends Identity<Integer> {
     private boolean isDeleted;
     private boolean removed;
 
+    public TransactionStatus(Integer id, Integer id1, String transactionStatusName, boolean isImmutable, boolean isCompleted, boolean isSuccessful, boolean isDeleted, boolean removed) {
+        super(id);
+        this.id = id1;
+        this.transactionStatusName = transactionStatusName;
+        this.isImmutable = isImmutable;
+        this.isCompleted = isCompleted;
+        this.isSuccessful = isSuccessful;
+        this.isDeleted = isDeleted;
+        this.removed = removed;
+    }
+
     @Override
     protected void validateId() {}
 

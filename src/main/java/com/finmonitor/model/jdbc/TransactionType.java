@@ -20,6 +20,14 @@ public class TransactionType extends Identity<Integer> {
     private String sign_operator;
     private boolean removed;
 
+    public TransactionType(Integer id, Integer id1, String transactionTypeName, String sign_operator, boolean removed) {
+        super(id);
+        this.id = id1;
+        this.transactionTypeName = transactionTypeName;
+        this.sign_operator = sign_operator;
+        this.removed = removed;
+    }
+
     @Override
     protected void validateId() {}
 
