@@ -1,7 +1,7 @@
 package com.finmonitor.repository;
 
+import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.model.User;
-import com.finmonitor.util.DatabaseConnector;  // наш класс для соединения
 import java.sql.*;
 import java.util.Optional;
 
@@ -15,10 +15,8 @@ public class UserRepository {
         String sql = "SELECT id, username, password_hash, created_at FROM users WHERE username = ?";
 
         try (
-
-            // получаем Connection (тут пока просто null пока DatabaseConnector не заработает потом будет настоящее соединение) !!!
-            Connection conn = DatabaseConnector.connect();
-            PreparedStatement stmt = conn.prepareStatement(sql)
+                Connection conn = JDBCConnector.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)
         ) {
             // Подставляем username вместо "?" !!!
             stmt.setString(1, username);
@@ -48,7 +46,7 @@ public class UserRepository {
     public void save(User user) {
         String sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
         try (
-            Connection conn = DatabaseConnector.connect();
+            Connection conn = JDBCConnector.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             // Подставляем логин и хеш пароля

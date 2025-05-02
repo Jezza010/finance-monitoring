@@ -4,30 +4,17 @@ import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.model.jdbc.Transaction;
 
 import java.sql.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class TransactionRepository {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    public List<Transaction> findAll() {
-        List<Transaction> list = new ArrayList<>();
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM transactions_full_view")) {
-
-            while (rs.next()) {
-                list.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error fetching transactions", e);
-        }
-        return list;
-    }
-
-    public void save(Transaction t) {
+    public long save(Transaction t) {
         try (Connection conn = JDBCConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO transactions (person_type_id, transaction_type_id, status_id, category_id, transaction_datetime, comment, amount, sender_bank, receiver_bank, account_number, receiver_account_number, receiver_inn, receiver_phone) " +
@@ -35,7 +22,9 @@ public class TransactionRepository {
                              "(SELECT id FROM transaction_types WHERE name = ?)," +
                              "(SELECT id FROM transaction_statuses WHERE name = ?)," +
                              "(SELECT id FROM categories WHERE name = ?)," +
-                             "?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                             "?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                     Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, t.getPersonType());
             stmt.setString(2, t.getTransactionType());
             stmt.setString(3, t.getStatus());
@@ -44,7 +33,7 @@ public class TransactionRepository {
             } else {
                 stmt.setNull(4, Types.VARCHAR);
             }
-            stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.parse(t.getDateTime())));
+            stmt.setTimestamp(5, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
             stmt.setString(6, t.getComment());
             stmt.setDouble(7, t.getAmount());
             stmt.setString(8, t.getSenderBank());
@@ -53,7 +42,17 @@ public class TransactionRepository {
             stmt.setString(11, t.getReceiverAccountNumber());
             stmt.setString(12, t.getReceiverINN());
             stmt.setString(13, t.getReceiverPhone());
+
             stmt.executeUpdate();
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
+                } else {
+                    throw new SQLException("Creating transaction failed, no ID obtained.");
+                }
+            }
+
         } catch (SQLException e) {
             throw new RuntimeException("Error saving transaction", e);
         }
@@ -151,6 +150,99 @@ public class TransactionRepository {
             case "Y" -> "to_char(transaction_datetime, 'YYYY') = to_char(now(), 'YYYY')";
             default -> throw new IllegalArgumentException("Invalid period: " + period);
         };
+    }
+
+    public Transaction findById(long id) {
+        String sql = "SELECT * FROM transactions_full_view WHERE id = ?";
+        try (Connection conn = JDBCConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRow(rs);
+                } else {
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding transaction by id", e);
+        }
+    }
+
+    public void update(Transaction t) {
+        String sql = """
+        UPDATE transactions SET
+            person_type_id = (SELECT id FROM person_types WHERE name = ?),
+            transaction_datetime = ?,
+            comment = ?,
+            amount = ?,
+            status_id = (SELECT id FROM transaction_statuses WHERE name = ?),
+            sender_bank = ?,
+            receiver_bank = ?,
+            receiver_inn = ?,
+            category_id = (SELECT id FROM categories WHERE name = ?),
+            receiver_phone = ?
+        WHERE id = ?
+    """;
+
+        try (Connection conn = JDBCConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, t.getPersonType());
+            stmt.setTimestamp(2, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
+            stmt.setString(3, t.getComment());
+            stmt.setDouble(4, t.getAmount());
+            stmt.setString(5, t.getStatus());
+            stmt.setString(6, t.getSenderBank());
+            stmt.setString(7, t.getReceiverBank());
+            stmt.setString(8, t.getReceiverINN());
+            stmt.setString(9, t.getCategory());
+            stmt.setString(10, t.getReceiverPhone());
+            stmt.setLong(11, t.getId());
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating transaction", e);
+        }
+    }
+
+    public void markAsDeleted(long id) {
+        String sql = "UPDATE transactions SET status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж удален') WHERE id = ?";
+        try (Connection conn = JDBCConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error marking transaction as deleted", e);
+        }
+    }
+
+    public void updateCategory(long id, String category) {
+        String sql = "UPDATE transactions SET category_id = (SELECT id FROM categories WHERE name = ?) WHERE id = ?";
+        try (Connection conn = JDBCConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, category);
+            stmt.setLong(2, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating category", e);
+        }
+    }
+
+    public List<Transaction> getReport(String period) {
+        String periodFilter = getPeriodFilter(period);
+        String sql = "SELECT * FROM transactions_full_view WHERE " + periodFilter;
+        List<Transaction> report = new ArrayList<>();
+        try (Connection conn = JDBCConnector.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                report.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error generating report", e);
+        }
+        return report;
     }
 
     public int getTransactionCount(String period) {

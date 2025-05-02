@@ -8,22 +8,31 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class TransactionHandler {
     private final TransactionRepository repo = new TransactionRepository();
     private static final Gson gson = new Gson();
+    private static final Set<String> NON_EDITABLE_STATUSES = Set.of(
+            "подтвержденная", "в обработке", "отменена", "платеж выполнен", "платеж удален", "возврат"
+    );
 
-    private void handleReq(HttpExchange exchange, Function<Map<String, String>, Object> handler) {
+    public void handleReq(HttpExchange exchange, Function<Map<String, String>, Object> handler) {
         try {
-            resp(exchange, handler.apply(getQuery(exchange)), 200);
+            Object result = handler.apply(getQuery(exchange));
+            resp(exchange, result, 200);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            resp(exchange, Map.of("error", "Invalid request data: " + e.getMessage()), 400);
         } catch (Exception e) {
             e.printStackTrace();
-            resp(exchange, Map.of("error", e.getMessage()), 500);
+            resp(exchange, Map.of("error", "Internal server error: " + e.getMessage()), 500);
         }
     }
 
@@ -56,26 +65,107 @@ public class TransactionHandler {
     }
 
     public void transaction(HttpExchange exchange) {
-        handleReq(exchange,
-                __ -> switch (exchange.getRequestMethod()) {
-                    case "GET" -> transactionGet();
-                    case "POST" -> transactionPost(exchange);
-                    default -> throw new RuntimeException("Invalid method: " + exchange.getRequestMethod());
-                });
-    }
-
-    private List<Transaction> transactionGet() {
-        return repo.findAll();
+        handleReq(exchange, query -> {
+            switch (exchange.getRequestMethod()) {
+                case "GET" -> {
+                    return repo.findByFilters(query);
+                }
+                case "POST" -> {
+                    return transactionPost(exchange);
+                }
+                case "PUT" -> {
+                    updateTransaction(exchange);
+                    return null;
+                }
+                case "DELETE" -> {
+                    deleteTransaction(exchange);
+                    return null;
+                }
+                default -> throw new RuntimeException("Invalid method: " + exchange.getRequestMethod());
+            }
+        });
     }
 
     private Transaction transactionPost(HttpExchange exchange) {
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
             Transaction transaction = gson.fromJson(reader, Transaction.class);
-            repo.save(transaction);
+            long id = repo.save(transaction);
+            transaction.setId(id);
             return transaction;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    public void updateTransaction(HttpExchange exchange) {
+        handleReq(exchange, query -> {
+            try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
+                Transaction tx = gson.fromJson(reader, Transaction.class);
+                Transaction existing = repo.findById(tx.getId());
+
+                if (existing == null) throw new RuntimeException("Transaction not found");
+                if (NON_EDITABLE_STATUSES.contains(existing.getStatus().toLowerCase()))
+                    throw new RuntimeException("Transaction status does not allow editing");
+
+                repo.update(tx);
+
+                return tx;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void deleteTransaction(HttpExchange exchange) {
+        handleReq(exchange, query -> {
+            long id = Long.parseLong(query.get("id"));
+            Transaction tx = repo.findById(id);
+
+            if (tx == null) throw new RuntimeException("Transaction not found");
+            if (NON_EDITABLE_STATUSES.contains(tx.getStatus().toLowerCase()))
+                throw new RuntimeException("Cannot delete transaction with current status");
+
+            repo.markAsDeleted(id);
+            return Map.of("deleted", true);
+        });
+    }
+
+    public void updateCategory(HttpExchange exchange) {
+        handleReq(exchange, query -> {
+            long id = Long.parseLong(query.get("id"));
+            String newCategory = query.get("category");
+            repo.updateCategory(id, newCategory);
+            return Map.of("updated", true);
+        });
+    }
+
+    public void exportReport(HttpExchange exchange) {
+        handleReq(exchange, query -> {
+            try {
+                String period = URLDecoder.decode(query.get("period"), StandardCharsets.UTF_8);
+                List<Transaction> transactions = repo.getReport(period);
+
+                StringBuilder csv = new StringBuilder("id,date,amount,status,senderBank,receiverBank\n");
+                for (Transaction tx : transactions) {
+                    csv.append(tx.getId()).append(",")
+                            .append(tx.getDateTime()).append(",")
+                            .append(tx.getAmount()).append(",")
+                            .append(tx.getStatus()).append(",")
+                            .append(tx.getSenderBank()).append(",")
+                            .append(tx.getReceiverBank()).append("\n");
+                }
+
+                byte[] csvBytes = csv.toString().getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "text/csv");
+                exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=report.csv");
+                exchange.sendResponseHeaders(200, csvBytes.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(csvBytes);
+                }
+                return null;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to generate report: " + e.getMessage());
+            }
+        });
     }
 
     public void transactionsCount(HttpExchange exchange) {
