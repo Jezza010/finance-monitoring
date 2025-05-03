@@ -139,33 +139,22 @@ public class TransactionHandler {
     }
 
     public void exportReport(HttpExchange exchange) {
-        handleReq(exchange, query -> {
+        try {
+            byte[] csvBytes = repo.getReport().getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "text/csv");
+            exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=report.csv");
             try {
-                String period = URLDecoder.decode(query.get("period"), StandardCharsets.UTF_8);
-                List<Transaction> transactions = repo.getReport(period);
-
-                StringBuilder csv = new StringBuilder("id,date,amount,status,senderBank,receiverBank\n");
-                for (Transaction tx : transactions) {
-                    csv.append(tx.getId()).append(",")
-                            .append(tx.getDateTime()).append(",")
-                            .append(tx.getAmount()).append(",")
-                            .append(tx.getStatus()).append(",")
-                            .append(tx.getSenderBank()).append(",")
-                            .append(tx.getReceiverBank()).append("\n");
-                }
-
-                byte[] csvBytes = csv.toString().getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().set("Content-Type", "text/csv");
-                exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=report.csv");
                 exchange.sendResponseHeaders(200, csvBytes.length);
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(csvBytes);
                 }
-                return null;
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to generate report: " + e.getMessage());
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        });
+        } catch (Exception e) {
+            e.printStackTrace();
+            resp(exchange, Map.of("error", "Internal server error: " + e.getMessage()), 500);
+        }
     }
 
     public void transactionsCount(HttpExchange exchange) {

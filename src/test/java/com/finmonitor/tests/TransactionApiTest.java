@@ -6,6 +6,8 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
@@ -101,71 +103,100 @@ public class TransactionApiTest {
                 .body("deleted", equalTo(true));
     }
 
-    @Test void testGetTransactionsCount() {
+    @Test
+    void testExport() {
+        given()
+                .when()
+                .get(BASE_URL + "export")
+                .then()
+                .statusCode(200)
+                .body(not(empty()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetTransactionsCount(String period) {
         get(BASE_URL + "transactions_count?period=M")
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetDebetCount() {
-        get(BASE_URL + "debet_count?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetDebetCount(String period) {
+        get(BASE_URL + "debet_count?period=" + period)
+                .then().statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(not(empty()));
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetCreditCount(String period) {
+        get(BASE_URL + "credit_count?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetCreditCount() {
-        get(BASE_URL + "credit_count?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetSumIncome(String period) {
+        get(BASE_URL + "sum_income?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetSumIncome() {
-        get(BASE_URL + "sum_income?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetSumOutcome(String period) {
+        get(BASE_URL + "sum_outcome?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetSumOutcome() {
-        get(BASE_URL + "sum_outcome?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetCompletedTransactions(String period) {
+        get(BASE_URL + "completed_transactions?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetCompletedTransactions() {
-        get(BASE_URL + "completed_transactions?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testGetCancelledTransactions(String period) {
+        get(BASE_URL + "cancelled_transactions?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testGetCancelledTransactions() {
-        get(BASE_URL + "cancelled_transactions?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testBankIncomeStats(String period) {
+        get(BASE_URL + "bank_income_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testBankIncomeStats() {
-        get(BASE_URL + "bank_income_stats?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testBankOutcomeStats(String period) {
+        get(BASE_URL + "bank_outcome_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
     }
 
-    @Test void testBankOutcomeStats() {
-        get(BASE_URL + "bank_outcome_stats?period=M")
-                .then().statusCode(200)
-                .contentType(ContentType.JSON)
-                .body(not(empty()));
-    }
-
-    @Test void testCategoryStats() {
-        get(BASE_URL + "category_stats?period=M")
+    @ParameterizedTest
+    @ValueSource(strings = {"W", "M", "Q", "Y"})
+    void testCategoryStats(String period) {
+        get(BASE_URL + "category_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));

@@ -141,6 +141,17 @@ public class TransactionRepository {
         return t;
     }
 
+    private String getPeriodAggregate(String period) {
+        return switch (period) {
+            case "W" -> "to_char(transaction_datetime, 'IYYY-IW')";
+            case "M" -> "to_char(transaction_datetime, 'YYYY-MM')";
+            case "Q" ->
+                    "concat(extract(year FROM transaction_datetime), '-Q', extract(quarter FROM transaction_datetime))";
+            case "Y" -> "to_char(transaction_datetime, 'YYYY')";
+            default -> throw new IllegalArgumentException("Invalid period: " + period);
+        };
+    }
+
     private String getPeriodFilter(String period) {
         return switch (period) {
             case "W" -> "to_char(transaction_datetime, 'IYYY-IW') = to_char(now(), 'IYYY-IW')";
@@ -229,162 +240,129 @@ public class TransactionRepository {
         }
     }
 
-    public List<Transaction> getReport(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT * FROM transactions_full_view WHERE " + periodFilter;
-        List<Transaction> report = new ArrayList<>();
+    public String getReport() {
+        StringBuilder csv = new StringBuilder();
+        String query = "SELECT * FROM transactions_full_view";
+
         try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                report.add(mapRow(rs));
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            for (int i = 1; i <= columnCount; i++) {
+                csv.append(meta.getColumnName(i));
+                if (i < columnCount) csv.append(",");
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error generating report", e);
-        }
-        return report;
-    }
+            csv.append("\n");
 
-    public int getTransactionCount(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE " + periodFilter;
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    String value = rs.getString(i);
+                    if (value != null) {
+                        value = value.replace("\"", "\"\"");
+                        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+                            value = "\"" + value + "\"";
+                        }
+                    }
+                    csv.append(value != null ? value : "");
+                    if (i < columnCount) csv.append(",");
+                }
+                csv.append("\n");
+            }
 
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getInt(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public int getDebetCount(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'DEBET') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getInt(1);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
+        return csv.toString();
     }
 
-    public int getCreditCount(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'CREDIT') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getInt(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartLongItem> getTransactionCount(String period) {
+        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions GROUP BY period", period);
     }
 
-    public double getSumIncome(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'INCOME') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getDouble(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartDoubleItem> getDebetCount(String period) {
+        return doubleSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Поступление') GROUP BY period", period);
     }
 
-    public double getSumOutcome(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'OUTCOME') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getDouble(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartDoubleItem> getCreditCount(String period) {
+        return doubleSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Списание') GROUP BY period", period);
     }
 
-    public int getCompletedTransactions(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'COMPLETED') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getInt(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartDoubleItem> getSumIncome(String period) {
+        return doubleSeriesCommon("SELECT %s AS period, SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Поступление') GROUP BY period", period);
     }
 
-    public int getCancelledTransactions(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'CANCELLED') AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getInt(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartDoubleItem> getSumOutcome(String period) {
+        return doubleSeriesCommon("SELECT %s AS period, SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Списание') GROUP BY period", period);
     }
 
-    public double getBankIncomeStats(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT SUM(amount) FROM transactions WHERE sender_bank = receiver_bank AND " + periodFilter;
-
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getDouble(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public List<ChartLongItem> getCompletedTransactions(String period) {
+        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж выполнен') GROUP BY period", period);
     }
 
-    public double getBankOutcomeStats(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT SUM(amount) FROM transactions WHERE sender_bank != receiver_bank AND " + periodFilter;
+    public List<ChartLongItem> getCancelledTransactions(String period) {
+        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'Отменена') GROUP BY period", period);
+    }
 
-        try (Connection conn = JDBCConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            rs.next();
-            return rs.getDouble(1);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public Map<String, Double> getBankIncomeStats(String period) {
+        return mapCommon("SELECT receiver_bank, SUM(amount) FROM transactions WHERE %s GROUP BY receiver_bank", period);
+    }
+
+    public Map<String, Double> getBankOutcomeStats(String period) {
+        return mapCommon("SELECT sender_bank, SUM(amount) FROM transactions WHERE %s GROUP BY sender_bank", period);
     }
 
     public Map<String, Double> getCategoryStats(String period) {
-        String periodFilter = getPeriodFilter(period);
-        String sql = "SELECT c.name, SUM(t.amount) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE " + periodFilter + " GROUP BY c.name";
+        return mapCommon("SELECT name, SUM(amount) FROM transactions JOIN categories ON category_id = categories.id WHERE %s GROUP BY name", period);
+    }
 
-        Map<String, Double> categoryStats = new HashMap<>();
+    private record ChartDoubleItem(String x, double y) {}
+    private List<ChartDoubleItem> doubleSeriesCommon(String req, String period) {
+        String sql = req.formatted(getPeriodAggregate(period));
+        var res = new ArrayList<ChartDoubleItem>();
         try (Connection conn = JDBCConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                categoryStats.put(rs.getString(1), rs.getDouble(2));
+                res.add(new ChartDoubleItem(rs.getString(1), rs.getDouble(2)));
             }
+            return res;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return categoryStats;
+    }
+
+    private record ChartLongItem(String x, double y) {}
+    private List<ChartLongItem> longSeriesCommon(String req, String period) {
+        String sql = req.formatted(getPeriodAggregate(period));
+        var res = new ArrayList<ChartLongItem>();
+        try (Connection conn = JDBCConnector.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                res.add(new ChartLongItem(rs.getString(1), rs.getLong(2)));
+            }
+            return res;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Map<String, Double> mapCommon(String req, String period) {
+        String sql = req.formatted(getPeriodFilter(period));
+        var res = new HashMap<String, Double>();
+        try (Connection conn = JDBCConnector.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                res.put(rs.getString(1), rs.getDouble(2));
+            }
+            return res;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
