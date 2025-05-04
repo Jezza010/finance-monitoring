@@ -1,6 +1,8 @@
 package com.finmonitor.http;
 
+import com.finmonitor.model.Session;
 import com.finmonitor.model.jdbc.Transaction;
+import com.finmonitor.repository.SessionRepository;
 import com.finmonitor.repository.TransactionRepository;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
@@ -11,35 +13,31 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
-public class TransactionHandler {
-    private final TransactionRepository repo = new TransactionRepository();
+public class TransactionHandler extends BaseHandler {
+    private final TransactionRepository repo;
     private static final Gson gson = new Gson();
 
-    public void handleReq(HttpExchange exchange, Function<Map<String, String>, Object> handler) {
-        try {
-            Object result = handler.apply(getQuery(exchange));
-            resp(exchange, result, 200);
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            resp(exchange, Map.of("error", "Invalid request data: " + e.getMessage()), 400);
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp(exchange, Map.of("error", "Internal server error: " + e.getMessage()), 500);
-        }
+    public TransactionHandler(SessionRepository sessionRepo, TransactionRepository transactionRepo) {
+        super(sessionRepo);
+        this.repo = transactionRepo;
     }
 
-    private static void resp(HttpExchange exchange, Object resp, int status) {
-        byte[] bytes = gson.toJson(resp).getBytes();
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
+    public void handleReq(HttpExchange exchange, Function<Map<String, String>, Object> handler) {
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
         try {
-            exchange.sendResponseHeaders(status, bytes.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(bytes);
-            }
-        } catch (IOException e) {
+            Object result = handler.apply(getQuery(exchange));
+            sendResponse(exchange, 200, result);
+        } catch (IllegalArgumentException e) {
             e.printStackTrace();
+            sendResponse(exchange, 400, Map.of("error", "Invalid request data: " + e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendResponse(exchange, 500, Map.of("error", "Internal server error: " + e.getMessage()));
         }
     }
 
@@ -76,6 +74,7 @@ public class TransactionHandler {
             throw new RuntimeException(e);
         }
     }
+
     public void updateTransaction(HttpExchange exchange) {
         handleReq(exchange, query -> {
             try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
@@ -88,6 +87,9 @@ public class TransactionHandler {
     }
 
     public void exportReport(HttpExchange exchange) {
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
         try {
             byte[] csvBytes = repo.getReport().getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "text/csv");
@@ -102,7 +104,7 @@ public class TransactionHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            resp(exchange, Map.of("error", "Internal server error: " + e.getMessage()), 500);
+            sendResponse(exchange, 500, Map.of("error", "Internal server error: " + e.getMessage()));
         }
     }
 
@@ -153,7 +155,34 @@ public class TransactionHandler {
     public void bankOutcomeStats(HttpExchange exchange) {
         handleReq(exchange, query -> repo.getBankOutcomeStats(query.get("period")));
     }
+
     public void categoryStats(HttpExchange exchange) {
         handleReq(exchange, query -> repo.getCategoryStats(query.get("period")));
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) {
+        String path = exchange.getRequestURI().getPath();
+        String method = exchange.getRequestMethod();
+
+        switch (path) {
+            case "/api/transaction" -> transaction(exchange);
+            case "/api/transactions_count" -> transactionsCount(exchange);
+            case "/api/debet_count" -> debetCount(exchange);
+            case "/api/credit_count" -> creditCount(exchange);
+            case "/api/sum_income" -> sumIncome(exchange);
+            case "/api/sum_outcome" -> sumOutcome(exchange);
+            case "/api/completed_transactions" -> completedTransactions(exchange);
+            case "/api/cancelled_transactions" -> cancelledTransactions(exchange);
+            case "/api/bank_income_stats" -> bankIncomeStats(exchange);
+            case "/api/bank_outcome_stats" -> bankOutcomeStats(exchange);
+            case "/api/category_stats" -> categoryStats(exchange);
+            case "/api/update_transaction" -> updateTransaction(exchange);
+            case "/api/delete_transaction" -> deleteTransaction(exchange);
+            case "/api/create_category" -> createCategory(exchange);
+            case "/api/update_category" -> updateCategory(exchange);
+            case "/api/export" -> exportReport(exchange);
+            default -> sendResponse(exchange, 404, Map.of("error", "Not found"));
+        }
     }
 }

@@ -51,4 +51,8 @@ public class JDBCConnector {
         return connection;
     }
 
+    public static HikariDataSource getDataSource() {
+        return source;
+    }
+
 }

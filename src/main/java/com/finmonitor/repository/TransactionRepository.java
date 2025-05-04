@@ -1,7 +1,7 @@
 package com.finmonitor.repository;
 
-import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.model.jdbc.Transaction;
+import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TransactionRepository {
+    private final HikariDataSource dataSource;
     private static final Map<String, Boolean> SUCCESS = Map.of("success", true);
     private static final Set<String> NON_EDITABLE_STATUSES = Set.of(
             "Подтвержденная", "В обработке", "Отменена", "Платеж выполнен", "Платеж удален", "Возврат"
@@ -17,8 +18,12 @@ public class TransactionRepository {
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
+    public TransactionRepository(HikariDataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public long save(Transaction t) {
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
                      "INSERT INTO transactions (person_type_id, transaction_type_id, status_id, category_id, transaction_datetime, comment, amount, sender_bank, receiver_bank, account_number, receiver_account_number, receiver_inn, receiver_phone) " +
                              "VALUES ((SELECT id FROM person_types WHERE name = ?)," +
@@ -82,7 +87,7 @@ public class TransactionRepository {
 
         String sql = "SELECT * FROM transactions_full_view" + (expr.isEmpty() ? "" : " WHERE " + expr);
         List<Transaction> transactions = new ArrayList<>();
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             for (int i = 0; i < params.size(); i++) {
@@ -140,7 +145,7 @@ public class TransactionRepository {
 
     public Transaction findById(long id) {
         String sql = "SELECT * FROM transactions_full_view WHERE id = ?";
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -178,7 +183,7 @@ public class TransactionRepository {
         WHERE id = ?
     """;
 
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, t.getPersonType());
@@ -211,7 +216,7 @@ public class TransactionRepository {
         }
 
         String sql = "UPDATE transactions SET status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж удален') WHERE id = ?";
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
             stmt.executeUpdate();
@@ -223,7 +228,7 @@ public class TransactionRepository {
 
     public Map<String, Boolean> updateCategory(long id, String category) {
         String sql = "UPDATE transactions SET category_id = (SELECT id FROM categories WHERE name = ?) WHERE id = ?";
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
             stmt.setLong(2, id);
@@ -236,7 +241,7 @@ public class TransactionRepository {
 
     public Map<String, Boolean> createCategory(String category) {
         String sql = "INSERT INTO categories (name) VALUES (?)";
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
             stmt.executeUpdate();
@@ -250,7 +255,7 @@ public class TransactionRepository {
         StringBuilder csv = new StringBuilder();
         String query = "SELECT * FROM transactions_full_view";
 
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
 
@@ -329,7 +334,7 @@ public class TransactionRepository {
     private List<ChartDoubleItem> doubleSeriesCommon(String req, String period) {
         String sql = req.formatted(getPeriodAggregate(period));
         var res = new ArrayList<ChartDoubleItem>();
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -345,7 +350,7 @@ public class TransactionRepository {
     private List<ChartLongItem> longSeriesCommon(String req, String period) {
         String sql = req.formatted(getPeriodAggregate(period));
         var res = new ArrayList<ChartLongItem>();
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -360,7 +365,7 @@ public class TransactionRepository {
     private Map<String, Double> mapCommon(String req, String period) {
         String sql = req.formatted(getPeriodFilter(period));
         var res = new HashMap<String, Double>();
-        try (Connection conn = JDBCConnector.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

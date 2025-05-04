@@ -1,21 +1,27 @@
 package com.finmonitor.repository;
 
-import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.model.User;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.sql.*;
 import java.util.Optional;
-
 
 //класс для работы с таблицей user
 // здесь мы будем сохранять нового пользователя и искать его по имени
 
 public class UserRepository {
+    private final HikariDataSource dataSource;
+
+    public UserRepository(HikariDataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     public Optional<User> findByUsername(String username) {
         // sql запрос, который ищет запись по полю username
         String sql = "SELECT id, username, password_hash, created_at FROM users WHERE username = ?";
 
         try (
-                Connection conn = JDBCConnector.getConnection();
+                Connection conn = dataSource.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)
         ) {
             // Подставляем username вместо "?" !!!
@@ -46,7 +52,7 @@ public class UserRepository {
     public void save(User user) {
         String sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)";
         try (
-            Connection conn = JDBCConnector.getConnection();
+            Connection conn = dataSource.getConnection();
             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
         ) {
             // Подставляем логин и хеш пароля
