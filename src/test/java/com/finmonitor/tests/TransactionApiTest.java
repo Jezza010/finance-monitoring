@@ -9,8 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.UUID;
-
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
@@ -133,7 +131,7 @@ public class TransactionApiTest {
         given()
                 .cookie(sessionCookie) // имя и значение куки
                 .when()
-                .get("/create_category?category=" + UUID.randomUUID())
+                .get("/create_category?category=foo")
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("success", equalTo(true));
