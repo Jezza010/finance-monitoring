@@ -2,9 +2,9 @@ package com.finmonitor.tests;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.http.Cookie;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -15,17 +15,28 @@ import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
 public class TransactionApiTest {
-
-    private static final String BASE_URL = "http://localhost:8080/api/";
+    private static Cookie sessionCookie;
     private static Long transactionId;
 
     @BeforeAll
     public static void setup() {
-        RestAssured.baseURI = "http://localhost:8080";
-    }
+        RestAssured.baseURI = "http://localhost:8080/api";
+        var user = """
+                        {"username":"testUser","password":"testUserPassword"}
+                   """;
 
-    @BeforeEach
-    void createTestTransaction() {
+        given() // try to create user
+                .body(user)
+                .when()
+                .post("/auth/register")
+                .detailedCookie("session");;
+
+        sessionCookie = given()
+                .when()
+                .body(user)
+                .post("/auth/login")
+                .detailedCookie("session");
+
         String jsonInputString = "{"
                 + "\"personType\": \"Физическое лицо\","
                 + "\"transactionType\": \"Поступление\","
@@ -42,9 +53,10 @@ public class TransactionApiTest {
                 + "}";
 
         Response response = given()
+                .cookie(sessionCookie)
                 .contentType(ContentType.JSON)
                 .body(jsonInputString)
-                .post(BASE_URL + "transaction")
+                .post("/transaction")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -56,8 +68,9 @@ public class TransactionApiTest {
     @Test
     void testAddAndGetTransactions() {
         given()
+                .cookie(sessionCookie)
                 .when()
-                .get(BASE_URL + "transaction")
+                .get("/transaction")
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
@@ -83,12 +96,12 @@ public class TransactionApiTest {
                 + "}";
 
         given()
+                .cookie(sessionCookie)
                 .contentType(ContentType.JSON)
                 .body(updatedJson)
                 .when()
-                .put(BASE_URL + "update_transaction/" + transactionId)
+                .put("/update_transaction")
                 .then()
-                .log().body()
                 .statusCode(200)
                 .body("success", equalTo(true));
     }
@@ -96,8 +109,9 @@ public class TransactionApiTest {
     @Test
     void testDeleteTransaction() {
         given()
+                .cookie(sessionCookie)
                 .when()
-                .delete(BASE_URL + "delete_transaction?id=" + transactionId)
+                .delete("/delete_transaction?id=" + transactionId)
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true));
@@ -106,8 +120,9 @@ public class TransactionApiTest {
     @Test
     void testExport() {
         given()
+                .cookie(sessionCookie)
                 .when()
-                .get(BASE_URL + "export")
+                .get("/export")
                 .then()
                 .statusCode(200)
                 .body(not(empty()));
@@ -115,7 +130,10 @@ public class TransactionApiTest {
 
     @Test
     void testCreateCategory() {
-        get(BASE_URL + "create_category?category=" + UUID.randomUUID())
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/create_category?category=" + UUID.randomUUID())
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("success", equalTo(true));
@@ -124,7 +142,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetTransactionsCount(String period) {
-        get(BASE_URL + "transactions_count?period=M")
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/transactions_count?period=M")
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -133,7 +154,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetDebetCount(String period) {
-        get(BASE_URL + "debet_count?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/debet_count?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -141,7 +165,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetCreditCount(String period) {
-        get(BASE_URL + "credit_count?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/credit_count?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -150,7 +177,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetSumIncome(String period) {
-        get(BASE_URL + "sum_income?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/sum_income?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -159,7 +189,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetSumOutcome(String period) {
-        get(BASE_URL + "sum_outcome?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/sum_outcome?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -168,7 +201,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetCompletedTransactions(String period) {
-        get(BASE_URL + "completed_transactions?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/completed_transactions?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -177,7 +213,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetCancelledTransactions(String period) {
-        get(BASE_URL + "cancelled_transactions?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/cancelled_transactions?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -186,7 +225,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testBankIncomeStats(String period) {
-        get(BASE_URL + "bank_income_stats?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/bank_income_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -195,7 +237,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testBankOutcomeStats(String period) {
-        get(BASE_URL + "bank_outcome_stats?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/bank_outcome_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
@@ -204,7 +249,10 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testCategoryStats(String period) {
-        get(BASE_URL + "category_stats?period=" + period)
+        given()
+                .cookie(sessionCookie) // имя и значение куки
+                .when()
+                .get("/category_stats?period=" + period)
                 .then().statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
