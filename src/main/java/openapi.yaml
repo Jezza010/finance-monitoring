@@ -5,9 +5,74 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
-  /api/transactions:
+  /api/transaction:
     get:
-      summary: Получить все транзакции
+      summary: Получить транзакции по фильтрам
+      parameters:
+        - in: query
+          name: from_bank
+          schema:
+            type: string
+          required: false
+          description: Банк-отправитель
+        - in: query
+          name: to_bank
+          schema:
+            type: string
+          required: false
+          description: Банк-получатель
+        - in: query
+          name: from_date
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: Дата начала периода (включительно)
+        - in: query
+          name: to_date
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: Дата конца периода (включительно)
+        - in: query
+          name: status
+          schema:
+            type: string
+          required: false
+          description: Статус транзакции
+        - in: query
+          name: inn
+          schema:
+            type: string
+          required: false
+          description: ИНН получателя
+        - in: query
+          name: amount_from
+          schema:
+            type: number
+            format: double
+          required: false
+          description: Минимальная сумма транзакции
+        - in: query
+          name: amount_to
+          schema:
+            type: number
+            format: double
+          required: false
+          description: Максимальная сумма транзакции
+        - in: query
+          name: type
+          schema:
+            type: string
+          required: false
+          description: Тип транзакции (например, DEBET или CREDIT)
+        - in: query
+          name: category
+          schema:
+            type: string
+          required: false
+          description: Категория транзакции
       responses:
         '200':
           description: Список транзакций
@@ -17,6 +82,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Transaction'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
     post:
       summary: Добавить транзакцию
       requestBody:
@@ -26,18 +93,93 @@ paths:
             schema:
               $ref: '#/components/schemas/Transaction'
       responses:
-        '201':
-          description: Транзакция добавлена
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/update_transaction:
+    post:
+      summary: Редактировать транзакцию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/delete_transaction:
+    post:
+      summary: Удалить транзакцию
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/create_category:
+    post:
+      summary: Создать категорию
+      parameters:
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/update_category:
+    post:
+      summary: Переименовать категорию
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+  /api/export:
+    get:
+      summary: Экспорт CSV
+      responses:
+        '200':
+          description: CSV с отчётом
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/transactions_count:
     get:
-      summary: Получить количество всех транзакций за период
+      summary: Получить динамику транзакций по интервалу
       parameters:
         - name: period
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: "M"
             enum:
               - W
               - M
@@ -45,21 +187,18 @@ paths:
               - Y
       responses:
         '200':
-          description: Количество транзакций
-          content:
-            application/json:
-              schema:
-                type: integer
+          $ref: '#/components/responses/IntPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/debet_count:
     get:
-      summary: Получить количество дебетовых транзакций за период
+      summary: Получить количество дебетовых транзакций по интервалу
       parameters:
         - name: period
           in: query
-          required: false
+          required: true
           schema:
             type: string
-            default: "M"
             enum:
               - W
               - M
@@ -67,14 +206,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Количество дебетовых транзакций
-          content:
-            application/json:
-              schema:
-                type: integer
+          $ref: '#/components/responses/IntPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/credit_count:
     get:
-      summary: Получить количество кредитовых транзакций за период
+      summary: Получить количество кредитовых транзакций по интервалу
       parameters:
         - name: period
           in: query
@@ -89,14 +226,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Количество кредитовых транзакций
-          content:
-            application/json:
-              schema:
-                type: integer
+          $ref: '#/components/responses/IntPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/sum_income:
     get:
-      summary: Получить сумму всех входящих транзакций за период
+      summary: Получить сумму всех входящих транзакций по интервалу
       parameters:
         - name: period
           in: query
@@ -111,15 +246,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Сумма входящих транзакций
-          content:
-            application/json:
-              schema:
-                type: number
-                format: double
+          $ref: '#/components/responses/FloatPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/sum_outcome:
     get:
-      summary: Получить сумму всех исходящих транзакций за период
+      summary: Получить сумму всех исходящих транзакций за по интервалу
       parameters:
         - name: period
           in: query
@@ -134,15 +266,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Сумма исходящих транзакций
-          content:
-            application/json:
-              schema:
-                type: number
-                format: double
+          $ref: '#/components/responses/FloatPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/completed_transactions:
     get:
-      summary: Получить количество завершенных транзакций за период
+      summary: Получить количество завершенных транзакций по интервалу
       parameters:
         - name: period
           in: query
@@ -157,14 +286,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Количество завершенных транзакций
-          content:
-            application/json:
-              schema:
-                type: integer
+          $ref: '#/components/responses/IntPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/cancelled_transactions:
     get:
-      summary: Получить количество отмененных транзакций за период
+      summary: Получить количество отмененных транзакций по интервалу
       parameters:
         - name: period
           in: query
@@ -179,14 +306,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Количество отмененных транзакций
-          content:
-            application/json:
-              schema:
-                type: integer
+          $ref: '#/components/responses/IntPointsResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/bank_income_stats:
     get:
-      summary: Получить статистику доходов банка за период
+      summary: Получить статистику доходов по банку за период
       parameters:
         - name: period
           in: query
@@ -201,15 +326,12 @@ paths:
               - Y
       responses:
         '200':
-          description: Статистика доходов банка
-          content:
-            application/json:
-              schema:
-                type: number
-                format: double
+          $ref: '#/components/responses/MapResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/bank_outcome_stats:
     get:
-      summary: Получить статистику расходов банка за период
+      summary: Получить статистику расходов по банку за период
       parameters:
         - name: period
           in: query
@@ -224,12 +346,9 @@ paths:
               - Y
       responses:
         '200':
-          description: Статистика расходов банка
-          content:
-            application/json:
-              schema:
-                type: number
-                format: double
+          $ref: '#/components/responses/MapResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
   /api/category_stats:
     get:
       summary: Получить статистику по категориям за период
@@ -247,14 +366,9 @@ paths:
               - Y
       responses:
         '200':
-          description: Статистика по категориям
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties:
-                  type: number
-                  format: double
+          $ref: '#/components/responses/MapResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
 components:
   schemas:
     Transaction:
@@ -265,10 +379,18 @@ components:
           example: 1
         personType:
           type: string
-          example: "Физлицо"
+          description: Тип участника операции
+          enum:
+            - "Физическое лицо"
+            - "Юридическое лицо"
+          example: "Физическое лицо"
         transactionType:
           type: string
-          example: "Пополнение"
+          description: Тип транзакции
+          enum:
+            - "Поступление"
+            - "Списание"
+          example: "Поступление"
         dateTime:
           type: string
           example: "2025-04-23T14:00:00"
@@ -281,7 +403,16 @@ components:
           example: 5000.75
         status:
           type: string
-          example: "Завершено"
+          description: Статус транзакции
+          enum:
+            - "Новая"
+            - "Подтвержденная"
+            - "В обработке"
+            - "Отменена"
+            - "Платеж выполнен"
+            - "Платеж удален"
+            - "Возврат"
+          example: "Платеж выполнен"
         senderBank:
           type: string
           example: "Сбербанк"
@@ -291,7 +422,10 @@ components:
         receiverINN:
           type: string
           example: "1234567890"
-        receiverAccount:
+        receiverAccountNumber:
+          type: string
+          example: "40817810000001234567"
+        senderAccountNumber:
           type: string
           example: "40817810000001234567"
         category:
@@ -300,3 +434,84 @@ components:
         phone:
           type: string
           example: "+79261234567"
+    ChartPointInt:
+      type: object
+      properties:
+        x:
+          type: string
+          description: Метка по оси X (например, месяц, квартал и т.д.)
+          example: "2025-Q1"
+        y:
+          type: integer
+          format: int64
+          description: Значение по оси Y (например, количество транзакций)
+          example: 4521
+    ChartPointFloat:
+      type: object
+      properties:
+        x:
+          type: string
+          description: Метка по оси X (например, месяц, неделя и т.д.)
+          example: "2025-04"
+        y:
+          type: number
+          format: double
+          description: Значение по оси Y (например, сумма транзакций)
+          example: 123456.78
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+          example: true
+      required:
+        - success
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+  responses:
+    SuccessResponse:
+      description: Успех
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Success'
+    ErrorResponse:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    IntPointsResponse:
+      description: Массив целочисленных точек графика
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ChartPointInt'
+    FloatPointsResponse:
+      description: Массив вещественных точек графика
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ChartPointFloat'
+    MapResponse:
+      description: Мапа ключ -> вещественное число
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties:
+              type: number
+              format: double
+            example:
+              "foo": 4.2
+              "bar": 3

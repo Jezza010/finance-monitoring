@@ -88,8 +88,7 @@ public class TransactionApiTest {
                 .then()
                 .log().body()
                 .statusCode(200)
-                .body("comment", equalTo("Обновлено через API"))
-                .body("amount", equalTo(9999.99f));
+                .body("success", equalTo(true));
     }
 
     @Test
@@ -98,9 +97,8 @@ public class TransactionApiTest {
                 .when()
                 .delete(BASE_URL + "delete_transaction?id=" + transactionId)
                 .then()
-                .log().body()
                 .statusCode(200)
-                .body("deleted", equalTo(true));
+                .body("success", equalTo(true));
     }
 
     @Test
@@ -111,6 +109,14 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .body(not(empty()));
+    }
+
+    @Test
+    void testCreateCategory() {
+        get(BASE_URL + "create_category?category=foo")
+                .then().statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("success", equalTo(true));
     }
 
     @ParameterizedTest

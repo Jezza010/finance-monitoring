@@ -8,20 +8,14 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 public class TransactionHandler {
     private final TransactionRepository repo = new TransactionRepository();
     private static final Gson gson = new Gson();
-    private static final Set<String> NON_EDITABLE_STATUSES = Set.of(
-            "подтвержденная", "в обработке", "отменена", "платеж выполнен", "платеж удален", "возврат"
-    );
 
     public void handleReq(HttpExchange exchange, Function<Map<String, String>, Object> handler) {
         try {
@@ -65,24 +59,10 @@ public class TransactionHandler {
     }
 
     public void transaction(HttpExchange exchange) {
-        handleReq(exchange, query -> {
-            switch (exchange.getRequestMethod()) {
-                case "GET" -> {
-                    return repo.findByFilters(query);
-                }
-                case "POST" -> {
-                    return transactionPost(exchange);
-                }
-                case "PUT" -> {
-                    updateTransaction(exchange);
-                    return null;
-                }
-                case "DELETE" -> {
-                    deleteTransaction(exchange);
-                    return null;
-                }
-                default -> throw new RuntimeException("Invalid method: " + exchange.getRequestMethod());
-            }
+        handleReq(exchange, query -> switch (exchange.getRequestMethod()) {
+            case "GET" -> repo.findByFilters(query);
+            case "POST" -> transactionPost(exchange);
+            default -> throw new RuntimeException("Invalid method: " + exchange.getRequestMethod());
         });
     }
 
@@ -100,41 +80,10 @@ public class TransactionHandler {
         handleReq(exchange, query -> {
             try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
                 Transaction tx = gson.fromJson(reader, Transaction.class);
-                Transaction existing = repo.findById(tx.getId());
-
-                if (existing == null) throw new RuntimeException("Transaction not found");
-                if (NON_EDITABLE_STATUSES.contains(existing.getStatus().toLowerCase()))
-                    throw new RuntimeException("Transaction status does not allow editing");
-
-                repo.update(tx);
-
-                return tx;
+                return repo.update(tx);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
-    }
-
-    public void deleteTransaction(HttpExchange exchange) {
-        handleReq(exchange, query -> {
-            long id = Long.parseLong(query.get("id"));
-            Transaction tx = repo.findById(id);
-
-            if (tx == null) throw new RuntimeException("Transaction not found");
-            if (NON_EDITABLE_STATUSES.contains(tx.getStatus().toLowerCase()))
-                throw new RuntimeException("Cannot delete transaction with current status");
-
-            repo.markAsDeleted(id);
-            return Map.of("deleted", true);
-        });
-    }
-
-    public void updateCategory(HttpExchange exchange) {
-        handleReq(exchange, query -> {
-            long id = Long.parseLong(query.get("id"));
-            String newCategory = query.get("category");
-            repo.updateCategory(id, newCategory);
-            return Map.of("updated", true);
         });
     }
 
@@ -155,6 +104,18 @@ public class TransactionHandler {
             e.printStackTrace();
             resp(exchange, Map.of("error", "Internal server error: " + e.getMessage()), 500);
         }
+    }
+
+    public void deleteTransaction(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.markAsDeleted(Long.parseLong(query.get("id"))));
+    }
+
+    public void updateCategory(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.updateCategory(Long.parseLong(query.get("id")), query.get("category")));
+    }
+
+    public void createCategory(HttpExchange exchange) {
+        handleReq(exchange, query -> repo.createCategory(query.get("category")));
     }
 
     public void transactionsCount(HttpExchange exchange) {

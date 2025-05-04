@@ -40,6 +40,7 @@ public class App {
         server.createContext("/api/category_stats", handler::categoryStats);
         server.createContext("/api/update_transaction", handler::updateTransaction);
         server.createContext("/api/delete_transaction", handler::deleteTransaction);
+        server.createContext("/api/create_category", handler::createCategory);
         server.createContext("/api/update_category", handler::updateCategory);
         server.createContext("/api/export", handler::exportReport);
 
