@@ -32,7 +32,7 @@ public class Config {
     public static int getHttpServerPort() {
         int port = 0, default_port = 8080;
         try {
-            port = Integer.parseInt(properties.getProperty("server.port"));
+            port = Integer.parseInt(properties.getProperty("http.server.port"));
         } catch (Exception e) {
             e.printStackTrace();
         }
