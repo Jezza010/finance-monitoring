@@ -4,8 +4,10 @@ import com.finmonitor.model.jdbc.Transaction;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -66,6 +68,8 @@ public class TransactionRepository {
     }
 
     public List<Transaction> findByFilters(Map<String, String> filters, int userId) {
+        validateDate(filters.get("from_date"));
+        validateDate(filters.get("to_date"));
         List<String> params = new ArrayList<>();
         String expr = filters.entrySet().stream().map(e -> {
             params.add(e.getValue());
@@ -102,6 +106,18 @@ public class TransactionRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void validateDate(String date) {
+        if (date == null) {
+            return;
+        }
+
+        try {
+            LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Дата должна быть в формате 01.01.2025");
         }
     }
 

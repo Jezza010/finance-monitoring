@@ -35,7 +35,7 @@ public class TransactionHandler extends BaseHandler {
             sendResponse(exchange, 200, result);
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
-            sendResponse(exchange, 400, Map.of("error", "Invalid request data: " + e.getMessage()));
+            sendResponse(exchange, 400, Map.of("error", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
             sendResponse(exchange, 500, Map.of("error", "Internal server error: " + e.getMessage()));
@@ -71,6 +71,7 @@ public class TransactionHandler extends BaseHandler {
     private Transaction transactionPost(HttpExchange exchange, int userId) {
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
             Transaction transaction = gson.fromJson(reader, Transaction.class);
+            transaction.validate();
             long id = repo.save(transaction, userId);
             transaction.setId(id);
             return transaction;
@@ -86,6 +87,7 @@ public class TransactionHandler extends BaseHandler {
         handleReq(exchange, query -> {
             try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
                 Transaction tx = gson.fromJson(reader, Transaction.class);
+                tx.validate();
                 return repo.update(tx, session.get().getUserId());
             } catch (IOException e) {
                 throw new RuntimeException(e);

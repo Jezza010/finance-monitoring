@@ -59,4 +59,14 @@ public class Transaction  implements Serializable {
                 receiverINN, receiverBank, receiverAccountNumber, phone,
                 personType, transactionType, status, category, userId);
     }
+
+    public void validate() {
+        if (!receiverINN.matches("^\\d{11}$")) {
+            throw new IllegalArgumentException("ИНН должен быть в формате 11 цифр");
+        }
+
+        if (!phone.matches("^(\\+7|8)\\d{10}$")) {
+            throw new IllegalArgumentException("Номер должен быть в формате +7/8 и 10 цифр");
+        }
+    }
 }
