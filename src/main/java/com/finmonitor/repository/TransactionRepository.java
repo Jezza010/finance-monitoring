@@ -22,34 +22,35 @@ public class TransactionRepository {
         this.dataSource = dataSource;
     }
 
-    public long save(Transaction t) {
+    public long save(Transaction t, int userId) {
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO transactions (person_type_id, transaction_type_id, status_id, category_id, transaction_datetime, comment, amount, sender_bank, receiver_bank, account_number, receiver_account_number, receiver_inn, receiver_phone) " +
-                             "VALUES ((SELECT id FROM person_types WHERE name = ?)," +
+                     "INSERT INTO transactions (user_id, person_type_id, transaction_type_id, status_id, category_id, transaction_datetime, comment, amount, sender_bank, receiver_bank, account_number, receiver_account_number, receiver_inn, receiver_phone) " +
+                             "VALUES (?, (SELECT id FROM person_types WHERE name = ?)," +
                              "(SELECT id FROM transaction_types WHERE name = ?)," +
                              "(SELECT id FROM transaction_statuses WHERE name = ?)," +
                              "(SELECT id FROM categories WHERE name = ?)," +
                              "?, ?, ?, ?, ?, ?, ?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
 
-            stmt.setString(1, t.getPersonType());
-            stmt.setString(2, t.getTransactionType());
-            stmt.setString(3, t.getStatus());
+            stmt.setInt(1, userId);
+            stmt.setString(2, t.getPersonType());
+            stmt.setString(3, t.getTransactionType());
+            stmt.setString(4, t.getStatus());
             if (t.getCategory() != null) {
-                stmt.setString(4, t.getCategory());
+                stmt.setString(5, t.getCategory());
             } else {
-                stmt.setNull(4, Types.VARCHAR);
+                stmt.setNull(5, Types.VARCHAR);
             }
-            stmt.setTimestamp(5, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
-            stmt.setString(6, t.getComment());
-            stmt.setDouble(7, t.getAmount());
-            stmt.setString(8, t.getSenderBank());
-            stmt.setString(9, t.getReceiverBank());
-            stmt.setString(10, t.getSenderAccountNumber());
-            stmt.setString(11, t.getReceiverAccountNumber());
-            stmt.setString(12, t.getReceiverINN());
-            stmt.setString(13, t.getReceiverPhone());
+            stmt.setTimestamp(6, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
+            stmt.setString(7, t.getComment());
+            stmt.setDouble(8, t.getAmount());
+            stmt.setString(9, t.getSenderBank());
+            stmt.setString(10, t.getReceiverBank());
+            stmt.setString(11, t.getSenderAccountNumber());
+            stmt.setString(12, t.getReceiverAccountNumber());
+            stmt.setString(13, t.getReceiverINN());
+            stmt.setString(14, t.getReceiverPhone());
 
             stmt.executeUpdate();
 
@@ -66,7 +67,7 @@ public class TransactionRepository {
         }
     }
 
-    public List<Transaction> findByFilters(Map<String, String> filters) {
+    public List<Transaction> findByFilters(Map<String, String> filters, int userId) {
         List<String> params = new ArrayList<>();
         String expr = filters.entrySet().stream().map(e -> {
             params.add(e.getValue());
@@ -85,13 +86,14 @@ public class TransactionRepository {
             };
         }).collect(Collectors.joining(" AND "));
 
-        String sql = "SELECT * FROM transactions_full_view" + (expr.isEmpty() ? "" : " WHERE " + expr);
+        String sql = "SELECT * FROM transactions_full_view WHERE user_id = ?" + (expr.isEmpty() ? "" : " AND " + expr);
         List<Transaction> transactions = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setInt(1, userId);
             for (int i = 0; i < params.size(); i++) {
-                stmt.setString(i + 1, params.get(i));
+                stmt.setString(i + 2, params.get(i));
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -143,11 +145,12 @@ public class TransactionRepository {
         };
     }
 
-    public Transaction findById(long id) {
-        String sql = "SELECT * FROM transactions_full_view WHERE id = ?";
+    public Transaction findById(long id, int userId) {
+        String sql = "SELECT * FROM transactions_full_view WHERE id = ? AND user_id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setInt(2, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return mapRow(rs);
@@ -160,8 +163,8 @@ public class TransactionRepository {
         }
     }
 
-    public Map<String, Boolean> update(Transaction t) {
-        Transaction existing = findById(t.getId());
+    public Map<String, Boolean> update(Transaction t, int userId) {
+        Transaction existing = findById(t.getId(), userId);
 
         if (existing == null) throw new RuntimeException("Transaction not found");
         if (NON_EDITABLE_STATUSES.contains(existing.getStatus().toLowerCase())) {
@@ -180,7 +183,7 @@ public class TransactionRepository {
             receiver_inn = ?,
             category_id = (SELECT id FROM categories WHERE name = ?),
             receiver_phone = ?
-        WHERE id = ?
+        WHERE id = ? AND user_id = ?
     """;
 
         try (Connection conn = dataSource.getConnection();
@@ -197,6 +200,7 @@ public class TransactionRepository {
             stmt.setString(9, t.getCategory());
             stmt.setString(10, t.getReceiverPhone());
             stmt.setLong(11, t.getId());
+            stmt.setInt(12, userId);
 
             stmt.executeUpdate();
             return SUCCESS;
@@ -205,8 +209,8 @@ public class TransactionRepository {
         }
     }
 
-    public Map<String, Boolean> markAsDeleted(long id) {
-        Transaction tx = findById(id);
+    public Map<String, Boolean> markAsDeleted(long id, int userId) {
+        Transaction tx = findById(id, userId);
 
         if (tx == null) {
             throw new RuntimeException("Transaction not found");
@@ -215,10 +219,11 @@ public class TransactionRepository {
             throw new RuntimeException("Cannot delete transaction with current status");
         }
 
-        String sql = "UPDATE transactions SET status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж удален') WHERE id = ?";
+        String sql = "UPDATE transactions SET status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж удален') WHERE id = ? AND user_id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
+            stmt.setInt(2, userId);
             stmt.executeUpdate();
             return SUCCESS;
         } catch (SQLException e) {
@@ -226,12 +231,13 @@ public class TransactionRepository {
         }
     }
 
-    public Map<String, Boolean> updateCategory(long id, String category) {
-        String sql = "UPDATE transactions SET category_id = (SELECT id FROM categories WHERE name = ?) WHERE id = ?";
+    public Map<String, Boolean> updateCategory(long id, String category, int userId) {
+        String sql = "UPDATE transactions SET category_id = (SELECT id FROM categories WHERE name = ?) WHERE id = ? AND user_id = ?";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
             stmt.setLong(2, id);
+            stmt.setInt(3, userId);
             stmt.executeUpdate();
             return SUCCESS;
         } catch (SQLException e) {
@@ -239,11 +245,12 @@ public class TransactionRepository {
         }
     }
 
-    public Map<String, Boolean> createCategory(String category) {
-        String sql = "INSERT INTO categories (name) VALUES (?)";
+    public Map<String, Boolean> createCategory(String category, int userId) {
+        String sql = "INSERT INTO categories (name, user_id) VALUES (?, ?) ON CONFLICT (name, user_id) DO NOTHING";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category);
+            stmt.setInt(2, userId);
             stmt.executeUpdate();
             return SUCCESS;
         } catch (SQLException e) {
@@ -290,86 +297,119 @@ public class TransactionRepository {
         return csv.toString();
     }
 
-    public List<ChartLongItem> getTransactionCount(String period) {
-        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions GROUP BY period", period);
+    public List<ChartLongItem> getTransactionCount(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, COUNT(*) as count " +
+                "FROM transactions WHERE user_id = ? AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return longSeriesCommon(sql, userId);
     }
 
-    public List<ChartDoubleItem> getDebetCount(String period) {
-        return doubleSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Поступление') GROUP BY period", period);
+    public List<ChartDoubleItem> getDebetCount(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, COUNT(*) as count " +
+                "FROM transactions t JOIN transaction_types tt ON t.transaction_type_id = tt.id " +
+                "WHERE t.user_id = ? AND tt.name = 'Поступление' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return doubleSeriesCommon(sql, userId);
     }
 
-    public List<ChartDoubleItem> getCreditCount(String period) {
-        return doubleSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Списание') GROUP BY period", period);
+    public List<ChartDoubleItem> getCreditCount(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, COUNT(*) as count " +
+                "FROM transactions t JOIN transaction_types tt ON t.transaction_type_id = tt.id " +
+                "WHERE t.user_id = ? AND tt.name = 'Списание' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return doubleSeriesCommon(sql, userId);
     }
 
-    public List<ChartDoubleItem> getSumIncome(String period) {
-        return doubleSeriesCommon("SELECT %s AS period, SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Поступление') GROUP BY period", period);
+    public List<ChartDoubleItem> getSumIncome(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, SUM(amount) as sum " +
+                "FROM transactions t JOIN transaction_types tt ON t.transaction_type_id = tt.id " +
+                "WHERE t.user_id = ? AND tt.name = 'Поступление' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return doubleSeriesCommon(sql, userId);
     }
 
-    public List<ChartDoubleItem> getSumOutcome(String period) {
-        return doubleSeriesCommon("SELECT %s AS period, SUM(amount) FROM transactions WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Списание') GROUP BY period", period);
+    public List<ChartDoubleItem> getSumOutcome(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, SUM(amount) as sum " +
+                "FROM transactions t JOIN transaction_types tt ON t.transaction_type_id = tt.id " +
+                "WHERE t.user_id = ? AND tt.name = 'Списание' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return doubleSeriesCommon(sql, userId);
     }
 
-    public List<ChartLongItem> getCompletedTransactions(String period) {
-        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'Платеж выполнен') GROUP BY period", period);
+    public List<ChartLongItem> getCompletedTransactions(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, COUNT(*) as count " +
+                "FROM transactions t JOIN transaction_statuses ts ON t.status_id = ts.id " +
+                "WHERE t.user_id = ? AND ts.name = 'Платеж выполнен' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return longSeriesCommon(sql, userId);
     }
 
-    public List<ChartLongItem> getCancelledTransactions(String period) {
-        return longSeriesCommon("SELECT %s AS period, COUNT(*) FROM transactions WHERE status_id = (SELECT id FROM transaction_statuses WHERE name = 'Отменена') GROUP BY period", period);
+    public List<ChartLongItem> getCancelledTransactions(String period, int userId) {
+        String sql = "SELECT " + getPeriodAggregate(period) + " as period, COUNT(*) as count " +
+                "FROM transactions t JOIN transaction_statuses ts ON t.status_id = ts.id " +
+                "WHERE t.user_id = ? AND ts.name = 'Отменена' AND " + getPeriodFilter(period) +
+                " GROUP BY period ORDER BY period";
+        return longSeriesCommon(sql, userId);
     }
 
-    public Map<String, Double> getBankIncomeStats(String period) {
-        return mapCommon("SELECT receiver_bank, SUM(amount) FROM transactions WHERE %s GROUP BY receiver_bank", period);
+    public Map<String, Double> getBankIncomeStats(String period, int userId) {
+        String sql = "SELECT receiver_bank, SUM(amount) FROM transactions WHERE user_id = ? AND " + getPeriodFilter(period) + " GROUP BY receiver_bank";
+        return mapCommon(sql, userId);
     }
 
-    public Map<String, Double> getBankOutcomeStats(String period) {
-        return mapCommon("SELECT sender_bank, SUM(amount) FROM transactions WHERE %s GROUP BY sender_bank", period);
+    public Map<String, Double> getBankOutcomeStats(String period, int userId) {
+        String sql = "SELECT sender_bank, SUM(amount) FROM transactions WHERE user_id = ? AND " + getPeriodFilter(period) + " GROUP BY sender_bank";
+        return mapCommon(sql, userId);
     }
 
-    public Map<String, Double> getCategoryStats(String period) {
-        return mapCommon("SELECT name, SUM(amount) FROM transactions JOIN categories ON category_id = categories.id WHERE %s GROUP BY name", period);
+    public Map<String, Double> getCategoryStats(String period, int userId) {
+        String sql = "SELECT c.name, SUM(t.amount) FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.user_id = ? AND " + getPeriodFilter(period) + " GROUP BY c.name";
+        return mapCommon(sql, userId);
     }
 
     private record ChartDoubleItem(String x, double y) {}
-    private List<ChartDoubleItem> doubleSeriesCommon(String req, String period) {
-        String sql = req.formatted(getPeriodAggregate(period));
-        var res = new ArrayList<ChartDoubleItem>();
+    private List<ChartDoubleItem> doubleSeriesCommon(String sql, int userId) {
+        List<ChartDoubleItem> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                res.add(new ChartDoubleItem(rs.getString(1), rs.getDouble(2)));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new ChartDoubleItem(rs.getString(1), rs.getDouble(2)));
+                }
             }
-            return res;
+            return result;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
     private record ChartLongItem(String x, long y) {}
-    private List<ChartLongItem> longSeriesCommon(String req, String period) {
-        String sql = req.formatted(getPeriodAggregate(period));
-        var res = new ArrayList<ChartLongItem>();
+    private List<ChartLongItem> longSeriesCommon(String sql, int userId) {
+        List<ChartLongItem> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                res.add(new ChartLongItem(rs.getString(1), rs.getLong(2)));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new ChartLongItem(rs.getString(1), rs.getLong(2)));
+                }
             }
-            return res;
+            return result;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private Map<String, Double> mapCommon(String req, String period) {
-        String sql = req.formatted(getPeriodFilter(period));
+    private Map<String, Double> mapCommon(String sql, int userId) {
         var res = new HashMap<String, Double>();
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                res.put(rs.getString(1), rs.getDouble(2));
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    res.put(rs.getString(1), rs.getDouble(2));
+                }
             }
             return res;
         } catch (SQLException e) {

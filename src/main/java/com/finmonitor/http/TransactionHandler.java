@@ -57,17 +57,20 @@ public class TransactionHandler extends BaseHandler {
     }
 
     public void transaction(HttpExchange exchange) {
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
         handleReq(exchange, query -> switch (exchange.getRequestMethod()) {
-            case "GET" -> repo.findByFilters(query);
-            case "POST" -> transactionPost(exchange);
+            case "GET" -> repo.findByFilters(query, session.get().getUserId());
+            case "POST" -> transactionPost(exchange, session.get().getUserId());
             default -> throw new RuntimeException("Invalid method: " + exchange.getRequestMethod());
         });
     }
 
-    private Transaction transactionPost(HttpExchange exchange) {
+    private Transaction transactionPost(HttpExchange exchange, int userId) {
         try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
             Transaction transaction = gson.fromJson(reader, Transaction.class);
-            long id = repo.save(transaction);
+            long id = repo.save(transaction, userId);
             transaction.setId(id);
             return transaction;
         } catch (IOException e) {
@@ -76,10 +79,13 @@ public class TransactionHandler extends BaseHandler {
     }
 
     public void updateTransaction(HttpExchange exchange) {
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
         handleReq(exchange, query -> {
             try (InputStreamReader reader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8)) {
                 Transaction tx = gson.fromJson(reader, Transaction.class);
-                return repo.update(tx);
+                return repo.update(tx, session.get().getUserId());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -109,61 +115,99 @@ public class TransactionHandler extends BaseHandler {
     }
 
     public void deleteTransaction(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.markAsDeleted(Long.parseLong(query.get("id"))));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.markAsDeleted(Long.parseLong(query.get("id")), session.get().getUserId()));
     }
 
     public void updateCategory(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.updateCategory(Long.parseLong(query.get("id")), query.get("category")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.updateCategory(Long.parseLong(query.get("id")), query.get("category"), session.get().getUserId()));
     }
 
     public void createCategory(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.createCategory(query.get("category")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.createCategory(query.get("category"), session.get().getUserId()));
     }
 
     public void transactionsCount(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getTransactionCount(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getTransactionCount(query.get("period"), session.get().getUserId()));
     }
 
     public void debetCount(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getDebetCount(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getDebetCount(query.get("period"), session.get().getUserId()));
     }
 
     public void creditCount(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getCreditCount(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getCreditCount(query.get("period"), session.get().getUserId()));
     }
 
     public void sumIncome(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getSumIncome(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getSumIncome(query.get("period"), session.get().getUserId()));
     }
 
     public void sumOutcome(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getSumOutcome(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getSumOutcome(query.get("period"), session.get().getUserId()));
     }
 
     public void completedTransactions(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getCompletedTransactions(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getCompletedTransactions(query.get("period"), session.get().getUserId()));
     }
 
     public void cancelledTransactions(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getCancelledTransactions(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getCancelledTransactions(query.get("period"), session.get().getUserId()));
     }
 
     public void bankIncomeStats(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getBankIncomeStats(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getBankIncomeStats(query.get("period"), session.get().getUserId()));
     }
 
     public void bankOutcomeStats(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getBankOutcomeStats(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getBankOutcomeStats(query.get("period"), session.get().getUserId()));
     }
 
     public void categoryStats(HttpExchange exchange) {
-        handleReq(exchange, query -> repo.getCategoryStats(query.get("period")));
+        Optional<Session> session = validateSession(exchange);
+        if (session.isEmpty()) return;
+
+        handleReq(exchange, query -> repo.getCategoryStats(query.get("period"), session.get().getUserId()));
     }
 
     @Override
     public void handle(HttpExchange exchange) {
         String path = exchange.getRequestURI().getPath();
-        String method = exchange.getRequestMethod();
 
         switch (path) {
             case "/api/transaction" -> transaction(exchange);

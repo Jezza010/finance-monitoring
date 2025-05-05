@@ -21,54 +21,52 @@ CREATE TABLE transaction_statuses (
 -- Справочник: Категории
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL
+    name VARCHAR(100) UNIQUE NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX idx_categories_name_user ON categories(name, user_id);
 
 -- Основная таблица: Транзакции
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
-    person_type_id INT NOT NULL REFERENCES person_types(id),
-    transaction_type_id INT NOT NULL REFERENCES transaction_types(id),
-    status_id INT NOT NULL REFERENCES transaction_statuses(id),
-    category_id INT REFERENCES categories(id),
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    person_type_id INTEGER NOT NULL REFERENCES person_types(id),
+    transaction_type_id INTEGER NOT NULL REFERENCES transaction_types(id),
     transaction_datetime TIMESTAMP NOT NULL,
     comment TEXT,
-    amount NUMERIC(15, 5) CHECK (amount >= 0),
+    amount DECIMAL(15,2) NOT NULL,
+    status_id INTEGER NOT NULL REFERENCES transaction_statuses(id),
     sender_bank VARCHAR(255),
     receiver_bank VARCHAR(255),
-    account_number VARCHAR(34),
-    receiver_account_number VARCHAR(34),
-    receiver_inn VARCHAR(11) CHECK (receiver_inn ~ '^\d{11}$'),
-    receiver_phone VARCHAR(16) CHECK (receiver_phone ~ '^(\+7|8)\d{10}$')
+    account_number VARCHAR(50),
+    receiver_account_number VARCHAR(50),
+    receiver_inn VARCHAR(12),
+    receiver_phone VARCHAR(20),
+    category_id INTEGER REFERENCES categories(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 
 CREATE VIEW transactions_full_view AS
 SELECT
     t.id,
-
-    -- заменяем person_type_id на имя
-    pt.name AS person_type,
-
-    -- заменяем transaction_type_id на имя
-    tt.name AS transaction_type,
-
-    -- заменяем status_id на имя
-    ts.name AS status,
-
-    -- заменяем category_id на имя (может быть NULL)
-    c.name AS category,
-
-    -- остальные поля как есть
+    t.user_id,
+    pt.name as person_type,
+    tt.name as transaction_type,
     t.transaction_datetime,
     t.comment,
     t.amount,
+    ts.name as status,
     t.sender_bank,
     t.receiver_bank,
     t.account_number,
     t.receiver_account_number,
     t.receiver_inn,
-    t.receiver_phone
-
+    t.receiver_phone,
+    c.name as category
 FROM
     transactions t
 JOIN

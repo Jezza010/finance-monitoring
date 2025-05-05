@@ -9,6 +9,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -57,50 +58,67 @@ public class AuthHandler implements HttpHandler {
 
     // Регистрация нового пользователя
     private void handleRegister(HttpExchange ex) {
-        InputStreamReader reader = new InputStreamReader(ex.getRequestBody(), StandardCharsets.UTF_8);
-        Map<String, String> data = gson.fromJson(reader, Map.class);
-        String username = data.get("username");
-        String password = data.get("password");
+        try (InputStreamReader reader = new InputStreamReader(ex.getRequestBody(), StandardCharsets.UTF_8)) {
+            Map<String, String> request = gson.fromJson(reader, Map.class);
+            String username = request.get("username");
+            String password = request.get("password");
 
-        // проверка есть ли уже такое имя
-        if (userRepo.findByUsername(username).isPresent()) {
-            sendResponse(ex, 409, Map.of("error", "Username already taken"));
-            return;
+            if (username == null || password == null) {
+                sendResponse(ex, 400, Map.of("error", "Username and password are required"));
+                return;
+            }
+
+            if (userRepo.findByUsername(username).isPresent()) {
+                sendResponse(ex, 400, Map.of("error", "Username already exists"));
+                return;
+            }
+
+            User user = new User();
+            user.setUsername(username);
+            user.setPasswordHash(BCrypt.hashpw(password, BCrypt.gensalt()));
+            userRepo.save(user);
+
+            sendResponse(ex, 200, Map.of("success", true));
+        } catch (IOException e) {
+            e.printStackTrace();
+            sendResponse(ex, 500, Map.of("error", "Internal server error"));
         }
-
-        // хэшируем пароль и сохраняем пользователя
-        String hash = BCrypt.hashpw(password, BCrypt.gensalt());
-        User user = new User(username, hash);
-        userRepo.save(user);
-
-        sendResponse(ex, 201, Map.of("message", "User registered"));
     }
 
     // вход по логину и паролю
     private void handleLogin(HttpExchange ex) {
-        InputStreamReader reader = new InputStreamReader(ex.getRequestBody(), StandardCharsets.UTF_8);
-        Map<String, String> data = gson.fromJson(reader, Map.class);
-        String username = data.get("username");
-        String password = data.get("password");
+        try (InputStreamReader reader = new InputStreamReader(ex.getRequestBody(), StandardCharsets.UTF_8)) {
+            Map<String, String> request = gson.fromJson(reader, Map.class);
+            String username = request.get("username");
+            String password = request.get("password");
 
-        Optional<User> opt = userRepo.findByUsername(username);
-        if (opt.isEmpty() || !BCrypt.checkpw(password, opt.get().getPasswordHash())) {
-            sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
-            return;
+            if (username == null || password == null) {
+                sendResponse(ex, 400, Map.of("error", "Username and password are required"));
+                return;
+            }
+
+            Optional<User> userOpt = userRepo.findByUsername(username);
+            if (userOpt.isEmpty() || !BCrypt.checkpw(password, userOpt.get().getPasswordHash())) {
+                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
+                return;
+            }
+
+            User user = userOpt.get();
+            String sessionToken = UUID.randomUUID().toString();
+            Session session = Session.builder()
+                    .userId(user.getId())
+                    .sessionToken(sessionToken)
+                    .createdAt(Instant.now())
+                    .build();
+            sessionRepo.save(session);
+
+            String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
+            ex.getResponseHeaders().add("Set-Cookie", cookie);
+            sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
+        } catch (IOException e) {
+            e.printStackTrace();
+            sendResponse(ex, 500, Map.of("error", "Internal server error"));
         }
-
-        User user = opt.get();
-        String sessionToken = UUID.randomUUID().toString();
-        Session session = Session.builder()
-                .userId(user.getId())
-                .sessionToken(sessionToken)
-                .createdAt(Instant.now())
-                .build();
-        sessionRepo.save(session);
-
-        String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
-        ex.getResponseHeaders().add("Set-Cookie", cookie);
-        sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
     }
 
     private void handleLogout(HttpExchange ex) {

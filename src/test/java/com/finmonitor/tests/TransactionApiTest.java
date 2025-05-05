@@ -15,6 +15,7 @@ import static org.hamcrest.Matchers.*;
 public class TransactionApiTest {
     private static Cookie sessionCookie;
     private static Long transactionId;
+    private static Cookie secondUserSessionCookie;
 
     @BeforeAll
     public static void setup() {
@@ -23,11 +24,12 @@ public class TransactionApiTest {
                         {"username":"testUser","password":"testUserPassword"}
                    """;
 
-        given() // try to create user
+        // Register and login as first user
+        given()
                 .body(user)
                 .when()
                 .post("/auth/register")
-                .detailedCookie("session");;
+                .detailedCookie("session");
 
         sessionCookie = given()
                 .when()
@@ -35,6 +37,7 @@ public class TransactionApiTest {
                 .post("/auth/login")
                 .detailedCookie("session");
 
+        // Create a transaction for the first user
         String jsonInputString = "{"
                 + "\"personType\": \"Физическое лицо\","
                 + "\"transactionType\": \"Поступление\","
@@ -61,10 +64,27 @@ public class TransactionApiTest {
                 .response();
 
         transactionId = response.jsonPath().getLong("id");
+
+        // Register and login as second user
+        var secondUser = """
+                        {"username":"testUser2","password":"testUserPassword2"}
+                   """;
+
+        given()
+                .body(secondUser)
+                .when()
+                .post("/auth/register");
+
+        secondUserSessionCookie = given()
+                .when()
+                .body(secondUser)
+                .post("/auth/login")
+                .detailedCookie("session");
     }
 
     @Test
     void testAddAndGetTransactions() {
+        // First user should see their transaction
         given()
                 .cookie(sessionCookie)
                 .when()
@@ -72,7 +92,18 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("$", not(empty()));
+                .body("$", not(empty()))
+                .body("$[0].id", equalTo(transactionId.intValue()));
+
+        // Second user should not see first user's transaction
+        given()
+                .cookie(secondUserSessionCookie)
+                .when()
+                .get("/transaction")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("$", empty());
     }
 
     @Test
@@ -93,6 +124,7 @@ public class TransactionApiTest {
                 + "\"phone\": \"+79001234567\""
                 + "}";
 
+        // First user can update their transaction
         given()
                 .cookie(sessionCookie)
                 .contentType(ContentType.JSON)
@@ -102,10 +134,22 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true));
+
+        // Second user cannot update first user's transaction
+        given()
+                .cookie(secondUserSessionCookie)
+                .contentType(ContentType.JSON)
+                .body(updatedJson)
+                .when()
+                .put("/update_transaction")
+                .then()
+                .statusCode(500)
+                .body("error", containsString("Transaction not found"));
     }
 
     @Test
     void testDeleteTransaction() {
+        // First user can delete their transaction
         given()
                 .cookie(sessionCookie)
                 .when()
@@ -113,6 +157,15 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .body("success", equalTo(true));
+
+        // Second user cannot delete first user's transaction
+        given()
+                .cookie(secondUserSessionCookie)
+                .when()
+                .delete("/delete_transaction?id=" + transactionId)
+                .then()
+                .statusCode(500)
+                .body("error", containsString("Transaction not found"));
     }
 
     @Test
@@ -128,11 +181,23 @@ public class TransactionApiTest {
 
     @Test
     void testCreateCategory() {
+        // First user can create their category
         given()
-                .cookie(sessionCookie) // имя и значение куки
+                .cookie(sessionCookie)
                 .when()
                 .get("/create_category?category=foo")
-                .then().statusCode(200)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("success", equalTo(true));
+
+        // Second user can create the same category name (it's user-specific)
+        given()
+                .cookie(secondUserSessionCookie)
+                .when()
+                .get("/create_category?category=foo")
+                .then()
+                .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body("success", equalTo(true));
     }
@@ -140,13 +205,25 @@ public class TransactionApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"W", "M", "Q", "Y"})
     void testGetTransactionsCount(String period) {
+        // First user should see their transaction count
         given()
-                .cookie(sessionCookie) // имя и значение куки
+                .cookie(sessionCookie)
                 .when()
-                .get("/transactions_count?period=M")
-                .then().statusCode(200)
+                .get("/transactions_count?period=" + period)
+                .then()
+                .statusCode(200)
                 .contentType(ContentType.JSON)
                 .body(not(empty()));
+
+        // Second user should see no transactions
+        given()
+                .cookie(secondUserSessionCookie)
+                .when()
+                .get("/transactions_count?period=" + period)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body(empty());
     }
 
     @ParameterizedTest
