@@ -2,3 +2,5 @@
 datasource.db.url=jdbc:postgresql://localhost:PORT/DATABASE_NAME
 datasource.db.user=postgres
 datasource.db.password=YOUR_PASSWORD_HERE
+
+http.server.port=YOUR_PORT_NUMBER_HERE

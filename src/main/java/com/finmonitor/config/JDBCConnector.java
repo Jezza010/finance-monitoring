@@ -2,6 +2,7 @@ package com.finmonitor.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -13,16 +14,11 @@ import java.util.Properties;
 
 @Slf4j
 public class JDBCConnector {
-
+    @Getter
     private static final HikariDataSource source;
 
     static {
-        Properties properties = new Properties();
-        try (InputStream reader = ClassLoader.getSystemResourceAsStream("application.properties")) {
-            properties.load(reader);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        Properties properties = Config.getProperties();
 
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(properties.getProperty("datasource.db.url"));
@@ -31,9 +27,10 @@ public class JDBCConnector {
         config.setMaximumPoolSize(10);
         config.setMaxLifetime(600000);
 
-        System.out.printf("Connection Pool for data source '%s'\n", config.getJdbcUrl());
+        log.info("Connection Pool for data source '{}':", config.getJdbcUrl());
 
         source = new HikariDataSource(config);
+
         log.info("HirakiCP dataSource initialized");
     }
 
@@ -43,16 +40,11 @@ public class JDBCConnector {
         Connection connection;
         try {
             connection = source.getConnection();
-            log.info("HirakiCP Datasource connection got!");
+            log.info("HirakiCP Datasource connection to '{}' got in '{}'", connection.getCatalog(), source.getPoolName());
         } catch (SQLException e) {
             log.error("Failed to get connection from HikariCP DataSource...", e);
             throw new RuntimeException(e);
         }
         return connection;
     }
-
-    public static HikariDataSource getDataSource() {
-        return source;
-    }
-
 }

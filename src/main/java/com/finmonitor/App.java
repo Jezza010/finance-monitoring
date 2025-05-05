@@ -1,5 +1,6 @@
 package com.finmonitor;
 
+import com.finmonitor.config.Config;
 import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.http.AuthHandler;
 import com.finmonitor.http.TransactionHandler;
@@ -8,18 +9,21 @@ import com.finmonitor.repository.TransactionRepository;
 import com.finmonitor.repository.UserRepository;
 import com.sun.net.httpserver.HttpServer;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+
+@Slf4j
 public class App {
     public static void main(String[] args) throws IOException {
         HikariDataSource dataSource = JDBCConnector.getDataSource();
         
         try (Connection conn = dataSource.getConnection()) {
-            System.out.println("Successful test connection to db!");
+            log.info("Successful test connection to db '{}'\n", conn.getCatalog());
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -29,7 +33,8 @@ public class App {
         SessionRepository sessionRepo = new SessionRepository(dataSource);
         TransactionRepository transactionRepo = new TransactionRepository(dataSource);
 
-        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        int port = Config.getHttpServerPort();
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Auth handler
         AuthHandler authHandler = new AuthHandler(userRepo, sessionRepo);
@@ -57,7 +62,9 @@ public class App {
         server.createContext("/api/export", transactionHandler::exportReport);
 
         server.setExecutor(null);
+
         server.start();
-        System.out.println("The server is running on port 8080...");
+
+        log.info("The server is running on port {}...", port);
     }
 }
