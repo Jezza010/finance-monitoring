@@ -25,16 +25,16 @@ paths:
           name: from_date
           schema:
             type: string
-            format: date-time
+            pattern: "^(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])\\.\\d{4}$"
           required: false
-          description: Дата начала периода (включительно)
+          description: Дата начала периода (включительно) в формате DD.MM.YYYY
         - in: query
           name: to_date
           schema:
             type: string
-            format: date-time
+            pattern: "^(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])\\.\\d{4}$"
           required: false
-          description: Дата конца периода (включительно)
+          description: Дата конца периода (включительно) в формате DD.MM.YYYY
         - in: query
           name: status
           schema:
@@ -393,7 +393,9 @@ components:
           example: "Поступление"
         dateTime:
           type: string
+          format: date-time
           example: "2025-04-23T14:00:00"
+          description: Дата и время операции в ISO 8601 формате
         comment:
           type: string
           example: "Оплата товара"
@@ -421,7 +423,9 @@ components:
           example: "Тинькофф"
         receiverINN:
           type: string
-          example: "1234567890"
+          pattern: "^[0-9]{11}$"
+          example: "12345678901"
+          description: ИНН — только цифры, ровно 11 символов
         receiverAccountNumber:
           type: string
           example: "40817810000001234567"
@@ -433,7 +437,9 @@ components:
           example: "Покупка"
         phone:
           type: string
+          pattern: "^(\\+7|8)[0-9]{10}$"
           example: "+79261234567"
+          description: Телефон — должен начинаться с +7 или 8 и содержать 10 цифр после
     ChartPointInt:
       type: object
       properties:

@@ -41,14 +41,15 @@ public class TransactionApiTest {
         String jsonInputString = "{"
                 + "\"personType\": \"Физическое лицо\","
                 + "\"transactionType\": \"Поступление\","
-                + "\"dateTime\": \"24.03.2025\","
+                + "\"dateTime\": \"2025-04-20T16:20\","
                 + "\"comment\": \"Оплата товара\","
                 + "\"amount\": 5000.75,"
                 + "\"status\": \"Новая\","
                 + "\"senderBank\": \"Сбербанк\","
                 + "\"receiverBank\": \"Тинькофф\","
                 + "\"receiverINN\": \"12345678901\","
-                + "\"receiverAccount\": \"40817810000001234567\","
+                + "\"senderAccountNumber\": \"40817810000007654321\","
+                + "\"receiverAccountNumber\": \"40817810000001234567\","
                 + "\"category\": \"Покупка\","
                 + "\"phone\": \"+79261234567\""
                 + "}";
@@ -106,20 +107,42 @@ public class TransactionApiTest {
     }
 
     @Test
+    public void testFindByAllFilters() {
+        given()
+                .cookie(sessionCookie)
+                .queryParam("from_bank", "Сбербанк")
+                .queryParam("to_bank", "Тинькофф")
+                .queryParam("from_date", "20.04.2025")
+                .queryParam("to_date", "21.04.2025")
+                .queryParam("status", "Новая")
+                .queryParam("inn", "12345678901")
+                .queryParam("amount_from", "5000.75")
+                .queryParam("amount_to", "5000.75")
+                .queryParam("type", "Поступление")
+                .queryParam("category", "Покупка")
+                .when()
+                .get("/transaction")
+                .then()
+                .statusCode(200)
+                .body("size()", greaterThan(0));
+    }
+
+    @Test
     void testUpdateTransaction() {
         String updatedJson = "{"
                 + "\"id\": " + transactionId + ","
                 + "\"personType\": \"Юридическое лицо\","
                 + "\"transactionType\": \"Списание\","
-                + "\"dateTime\": \"25.03.2025\","
+                + "\"dateTime\": \"2025-04-20T16:30\","
                 + "\"comment\": \"Обновлено через API\","
                 + "\"amount\": 9999.99,"
                 + "\"status\": \"Новая\","
                 + "\"senderBank\": \"Газпромбанк\","
                 + "\"receiverBank\": \"Райффайзенбанк\","
                 + "\"receiverINN\": \"98765432109\","
-                + "\"receiverAccount\": \"40817810000007654321\","
-                + "\"category\": \"Оплата услуг\","
+                + "\"senderAccountNumber\": \"40817810000007654321\","
+                + "\"receiverAccountNumber\": \"40817810000007654321\","
+                + "\"category\": \"Покупка\","
                 + "\"phone\": \"+79001234567\""
                 + "}";
 

@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class TransactionHandler extends BaseHandler {
         for (String param : query.split("&")) {
             String[] entry = param.split("=");
             if (entry.length > 1) {
-                result.put(entry[0], entry[1]);
+                result.put(entry[0], URLDecoder.decode(entry[1], StandardCharsets.UTF_8));
             } else {
                 result.put(entry[0], "");
             }

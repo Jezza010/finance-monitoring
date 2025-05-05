@@ -23,7 +23,7 @@ public class Transaction  implements Serializable {
     public String receiverINN;
     public String receiverBank;
     public String receiverAccountNumber;
-    public String receiverPhone;
+    public String phone;
     public String personType;
     public String transactionType;
     public String status;
@@ -42,7 +42,7 @@ public class Transaction  implements Serializable {
                 Objects.equals(receiverINN, that.receiverINN)
                 && Objects.equals(receiverBank, that.receiverBank)
                 && Objects.equals(receiverAccountNumber, that.receiverAccountNumber)
-                && Objects.equals(receiverPhone, that.receiverPhone)
+                && Objects.equals(phone, that.phone)
                 && Objects.equals(personType, that.personType)
                 && Objects.equals(transactionType, that.transactionType)
                 && Objects.equals(status, that.status)
@@ -56,7 +56,7 @@ public class Transaction  implements Serializable {
                 dateTime, amount,
                 comment,
                 senderBank, senderAccountNumber,
-                receiverINN, receiverBank, receiverAccountNumber, receiverPhone,
+                receiverINN, receiverBank, receiverAccountNumber, phone,
                 personType, transactionType, status, category, userId);
     }
 }

@@ -4,7 +4,7 @@ import com.finmonitor.model.jdbc.Transaction;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.*;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,8 +15,6 @@ public class TransactionRepository {
     private static final Set<String> NON_EDITABLE_STATUSES = Set.of(
             "Подтвержденная", "В обработке", "Отменена", "Платеж выполнен", "Платеж удален", "Возврат"
     );
-
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     public TransactionRepository(HikariDataSource dataSource) {
         this.dataSource = dataSource;
@@ -42,7 +40,7 @@ public class TransactionRepository {
             } else {
                 stmt.setNull(5, Types.VARCHAR);
             }
-            stmt.setTimestamp(6, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
+            stmt.setTimestamp(6, Timestamp.valueOf(LocalDateTime.parse(t.getDateTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
             stmt.setString(7, t.getComment());
             stmt.setDouble(8, t.getAmount());
             stmt.setString(9, t.getSenderBank());
@@ -50,7 +48,7 @@ public class TransactionRepository {
             stmt.setString(11, t.getSenderAccountNumber());
             stmt.setString(12, t.getReceiverAccountNumber());
             stmt.setString(13, t.getReceiverINN());
-            stmt.setString(14, t.getReceiverPhone());
+            stmt.setString(14, t.getPhone());
 
             stmt.executeUpdate();
 
@@ -74,14 +72,14 @@ public class TransactionRepository {
             return switch (e.getKey()) {
                 case "from_bank" -> "sender_bank = ?";
                 case "to_bank" -> "receiver_bank = ?";
-                case "from_date" -> "transaction_datetime >= ?";
-                case "to_date" -> "transaction_datetime <= ?";
-                case "status" -> "status_id = (SELECT id FROM transaction_statuses WHERE status = ?)";
+                case "from_date" -> "transaction_datetime >= to_date(?, 'DD.MM.YYYY')";
+                case "to_date" -> "transaction_datetime <= to_date(?, 'DD.MM.YYYY')";
+                case "status" -> "status = ?";
                 case "inn" -> "receiver_inn = ?";
-                case "amount_from" -> "amount >= ?";
-                case "amount_to" -> "amount <= ?";
-                case "type" -> "transaction_type_id = (SELECT id FROM transaction_types WHERE transaction_type = ?)";
-                case "category" -> "category_id = (SELECT id FROM categories WHERE category = ?)";
+                case "amount_from" -> "amount >= (?::numeric)";
+                case "amount_to" -> "amount <= (?::numeric)";
+                case "type" -> "transaction_type = ?";
+                case "category" -> "category = ?";
                 default -> throw new IllegalArgumentException("Invalid filter: " + e.getKey());
             };
         }).collect(Collectors.joining(" AND "));
@@ -121,7 +119,7 @@ public class TransactionRepository {
         t.setReceiverINN(rs.getString("receiver_inn"));
         t.setReceiverAccountNumber(rs.getString("receiver_account_number"));
         t.setCategory(rs.getString("category"));
-        t.setReceiverPhone(rs.getString("receiver_phone"));
+        t.setPhone(rs.getString("receiver_phone"));
         return t;
     }
 
@@ -190,7 +188,7 @@ public class TransactionRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, t.getPersonType());
-            stmt.setTimestamp(2, Timestamp.valueOf(LocalDate.parse(t.getDateTime(), formatter).atStartOfDay()));
+            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.parse(t.getDateTime(), DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
             stmt.setString(3, t.getComment());
             stmt.setDouble(4, t.getAmount());
             stmt.setString(5, t.getStatus());
@@ -198,7 +196,7 @@ public class TransactionRepository {
             stmt.setString(7, t.getReceiverBank());
             stmt.setString(8, t.getReceiverINN());
             stmt.setString(9, t.getCategory());
-            stmt.setString(10, t.getReceiverPhone());
+            stmt.setString(10, t.getPhone());
             stmt.setLong(11, t.getId());
             stmt.setInt(12, userId);
 
