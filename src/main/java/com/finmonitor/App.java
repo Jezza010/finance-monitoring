@@ -20,7 +20,7 @@ import java.sql.SQLException;
 @Slf4j
 public class App {
     public static void main(String[] args) throws IOException {
-        HikariDataSource dataSource = JDBCConnector.getDataSource();
+        HikariDataSource dataSource = JDBCConnector.getSource();
         
         try (Connection conn = dataSource.getConnection()) {
             log.info("Successful test connection to db '{}'\n", conn.getCatalog());
