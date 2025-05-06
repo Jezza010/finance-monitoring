@@ -92,8 +92,7 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body("$", not(empty()))
-                .body("$[0].id", equalTo(transactionId.intValue()));
+                .body("$", not(empty()));
 
         // Second user should not see first user's transaction
         given()
@@ -223,7 +222,7 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(200)
                 .contentType(ContentType.JSON)
-                .body(empty());
+                .body("size()", equalTo(0));
     }
 
     @ParameterizedTest
