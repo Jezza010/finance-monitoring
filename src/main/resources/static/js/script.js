@@ -46,3 +46,29 @@ $(document).ready(function() {
         }
     });
 });
+
+    // Авторизация
+    document.querySelector('.b').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const username = document.getElementById('login').value;
+        const password = document.getElementById('lpassword').value;
+
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Успешный вход: ' + result.username);
+            // Закрытие модального окна
+            document.getElementById('loginModal').style.display = 'none';
+            // здесь можно добавить редирект или обновление страницы
+        } else {
+            alert('Ошибка входа: ' + result.error);
+        }
+    });
+
+

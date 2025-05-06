@@ -59,10 +59,15 @@ padding-left: 40px;
     display: inline-grid;
     }
 
-    .b{
+    #loginForm{
     display: flex;
     flex-direction: column;
 }
+#registerForm{
+display: flex;
+    flex-direction: column;
+}
+
       .modal__content {
         width: 100%;
         max-width: 500px;
@@ -176,4 +181,10 @@ padding-left: 40px;
         }
         .nav-link.active {
           border-bottom: 2px solid #0d6efd;
+        }
+        .dashboard-frame {
+            display: none;
+        }
+        .dashboard-frame.active {
+            display: block;
         }
