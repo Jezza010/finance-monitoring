@@ -153,7 +153,7 @@
     });
 
     async function fetchTransactionData(period) {
-        const response = await fetch(`http://localhost:8080/api/transactions_count?period=${period}`);
+        const response = await fetch(`/api/transactions_count?period=${period}`);
         const data = await response.json();
 
         const labels = data.map(point => point.x); // Метки времени

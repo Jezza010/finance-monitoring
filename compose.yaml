@@ -1,4 +1,4 @@
-version: '1.0'
+version: '3.8'
 
 volumes:
   finance_monitoring_data:
@@ -38,3 +38,14 @@ services:
       - ./services/pgadmin:/var/lib/pgadmin
     networks:
       - dev_backend
+
+  static-server:
+    image: nginx:alpine
+    container_name: my-static-server
+    ports:
+      - "8086:80"
+    volumes:
+      - ./src/main/resources:/usr/share/nginx/html:ro
+      - ./src/main/resources/nginx.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
