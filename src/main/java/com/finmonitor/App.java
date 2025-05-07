@@ -3,6 +3,9 @@ package com.finmonitor;
 import com.finmonitor.config.Config;
 import com.finmonitor.config.JDBCConnector;
 import com.finmonitor.http.AuthHandler;
+import com.finmonitor.http.NotFoundHandler;
+import com.finmonitor.http.StaticFileHandler;
+import com.finmonitor.http.TemplateHandler;
 import com.finmonitor.http.TransactionHandler;
 import com.finmonitor.repository.SessionRepository;
 import com.finmonitor.repository.TransactionRepository;
@@ -15,7 +18,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.SQLException;
-
 
 @Slf4j
 public class App {
@@ -35,6 +37,15 @@ public class App {
 
         int port = Config.getHttpServerPort();
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+
+        // Static files handler
+        server.createContext("/static/", new StaticFileHandler());
+
+        // Template handlers
+        server.createContext("/", new TemplateHandler("index.html"));
+        server.createContext("/transactions", new TemplateHandler("transaction-table.html"));
+        server.createContext("/transaction/new", new TemplateHandler("transaction-form.html"));
+        server.createContext("/reports", new TemplateHandler("reports.html"));
 
         // Auth handler
         AuthHandler authHandler = new AuthHandler(userRepo, sessionRepo);
@@ -61,8 +72,10 @@ public class App {
         server.createContext("/api/update_category", transactionHandler::updateCategory);
         server.createContext("/api/export", transactionHandler::exportReport);
 
-        server.setExecutor(null);
+        // 404 handler (must be last)
+        server.createContext("/", new NotFoundHandler());
 
+        server.setExecutor(null);
         server.start();
 
         log.info("The server is running on port {}...", port);
