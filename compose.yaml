@@ -19,7 +19,7 @@ services:
       - '5438:5432'
     volumes:
       - ./services/finance_monitoring_data:/var/lib/postgresql/data
-      - ./src/main/resources:/docker-entrypoint-initdb.d
+      - ./src/main/resources/db:/docker-entrypoint-initdb.d
     networks:
       - dev_backend
 
@@ -27,7 +27,7 @@ services:
     image: dpage/pgadmin4:latest
     ports:
       - "5050:80"
-    container_name: pgadmin
+    container_name: finance_monitoring_pgadmin
     depends_on:
       - pg_db
     environment:
