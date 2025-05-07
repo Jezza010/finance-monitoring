@@ -53,7 +53,7 @@ $(document).ready(function() {
         const username = document.getElementById('login').value;
         const password = document.getElementById('lpassword').value;
 
-        const response = await fetch('/api/login', {
+        const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })

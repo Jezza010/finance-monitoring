@@ -43,9 +43,9 @@ services:
     image: nginx:alpine
     container_name: my-static-server
     ports:
-      - "8086:80"
+      - "8086:81"
     volumes:
       - ./src/main/resources:/usr/share/nginx/html:ro
-      - ./src/main/resources/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./src/main/resources/frontend.conf:/etc/nginx/conf.d/frontend.conf:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
