@@ -40,6 +40,11 @@ public class AuthHandler implements HttpHandler {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
 
+            Function<Integer, String> bad_request_log = status -> gson.toJson(Map.of(
+                    "method", method.toUpperCase(),
+                    "endpoint_path", path,
+                    "status", status));
+
             if ("POST".equals(method)) {
                 if (path.endsWith("/register")) {
                     handleRegister(exchange);
@@ -48,14 +53,20 @@ public class AuthHandler implements HttpHandler {
                 } else if (path.endsWith("/logout")) {
                     handleLogout(exchange);
                 } else {
-                    sendResponse(exchange, 404, Map.of("error", "Not found"));
+                    String msg = "Not found";
+                    sendResponse(exchange, 404, Map.of("error", msg));
+                    log.warn("Invalid request endpoint path {} ... {}", bad_request_log.apply(404), msg);
                 }
             } else {
-                sendResponse(exchange, 405, Map.of("error", "Method not allowed"));
+                String msg = "Method not allowed";
+                sendResponse(exchange, 405, Map.of("error", msg));
+                log.warn("Invalid request {} ... {}", bad_request_log.apply(405), msg);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            sendResponse(exchange, 500, Map.of("error", "Server error"));
+            String msg = "Internal server error";
+            sendResponse(exchange, 500, Map.of("error", msg));
+            log.error("Failed request... {} (500):\t{}", msg, e.getMessage());
         }
     }
 
@@ -73,14 +84,14 @@ public class AuthHandler implements HttpHandler {
             if (username == null || password == null) {
                 String msg = "Username and password are required";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.info("User {} not registered...{}", bad_user_log.apply(400), msg);
+                log.warn("User {} not registered...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
             if (userRepo.findByUsername(username).isPresent()) {
                 String msg = "Username already exists";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.info("User {} not registered...{}", bad_user_log.apply(400), msg);
+                log.warn("User {} not registered...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
@@ -102,13 +113,13 @@ public class AuthHandler implements HttpHandler {
             } else {
                 String msg = "Not recorded into db (internal server error)";
                 sendResponse(ex, 500, Map.of("error", msg));
-                log.info("User {} not registered...{}", bad_user_log.apply(500), msg);
+                log.error("User {} not registered...{}", bad_user_log.apply(500), msg);
             }
         } catch (IOException e) {
             e.printStackTrace();
             String msg = "Internal server error";
             sendResponse(ex, 500, Map.of("error", msg));
-            log.info("User not registered... {}", e.getMessage());
+            log.error("User not registered... {} (500):\t{}", msg, e.getMessage());
         }
     }
 
@@ -126,7 +137,7 @@ public class AuthHandler implements HttpHandler {
             if (username == null || password == null) {
                 String msg = "Username and password are required";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.info("\"User {} cannot log in...{}", bad_user_log.apply(400), msg);
+                log.warn("\"User {} cannot log in...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
@@ -134,7 +145,7 @@ public class AuthHandler implements HttpHandler {
             if (userOpt.isEmpty() || !BCrypt.checkpw(password, userOpt.get().getPasswordHash())) {
                 String msg = "UInvalid username or passwordd";
                 sendResponse(ex, 401, Map.of("error", msg));
-                log.info("\"User {} cannot log in...{}", bad_user_log.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
+                log.warn("\"User {} cannot log in...{}", bad_user_log.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
                 return;
             }
 
@@ -164,12 +175,13 @@ public class AuthHandler implements HttpHandler {
             } else {
                 String msg = "The session was not saved to the database (internal server error)";
                 sendResponse(ex, 500, Map.of("error", msg));
-                log.info("User {} cannot log in...{}", bad_user_log.apply(500), msg);
+                log.error("User {} cannot log in...{}", bad_user_log.apply(500), msg);
             }
         } catch (IOException e) {
             e.printStackTrace();
-            sendResponse(ex, 500, Map.of("error", "Internal server error"));
-            log.info("The user cannot log in... {}", e.getMessage());
+            String msg = "Internal server error";
+            sendResponse(ex, 500, Map.of("error", msg));
+            log.error("The user cannot log in.... {} (500):\t{}", msg, e.getMessage());
         }
     }
 
@@ -183,13 +195,13 @@ public class AuthHandler implements HttpHandler {
 //        ex.getResponseHeaders().add("Set-Cookie", cookie);
 //        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
 
-        var new_session = sessionRepo.findByToken(sessionToken);
+        var del_session = sessionRepo.findByToken(sessionToken);
 
-        if (new_session.isPresent()) {
+        if (del_session.isPresent()) {
             String msg = "The session was not deleted (internal server error)";
             sendResponse(ex, 500, Map.of("error", msg));
-            log.info("User {} cannot log out...{}", gson.toJson(Map.of(
-                    "id", new_session.get().getUserId(),
+            log.error("User {} cannot log out...{}", gson.toJson(Map.of(
+                    "id", del_session.get().getUserId(),
                     "status", 500)),
                     msg);
         } else {
@@ -197,7 +209,7 @@ public class AuthHandler implements HttpHandler {
             ex.getResponseHeaders().add("Set-Cookie", cookie);
             sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
             log.info("User {} log out", gson.toJson(Map.of(
-                            "id", new_session.get().getUserId(),
+                            "id", del_session.get().getUserId(),
                             "status", 200)));
         }
     }
