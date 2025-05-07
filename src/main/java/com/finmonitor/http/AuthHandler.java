@@ -176,9 +176,26 @@ public class AuthHandler implements HttpHandler {
             sessionRepo.deleteByToken(sessionToken);
         }
 
-        String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
-        ex.getResponseHeaders().add("Set-Cookie", cookie);
-        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
+        var new_session = sessionRepo.findByToken(sessionToken);
+
+        if (new_session.isPresent()) {
+            String msg = "The session was not deleted (internal server error)";
+            sendResponse(ex, 500, Map.of("error", msg));
+            log.info("User {} cannot log out...{}", gson.toJson(Map.of(
+                    "id", new_session.get().getUserId(),
+                    "status", 500)),
+                    msg);
+        } else {
+            String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
+            ex.getResponseHeaders().add("Set-Cookie", cookie);
+            sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
+            log.info("User {} log out", gson.toJson(Map.of(
+                            "id", new_session.get().getUserId(),
+                            "status", 200)));
+        }
+//        String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
+//        ex.getResponseHeaders().add("Set-Cookie", cookie);
+//        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
     }
 
     private String getSessionToken(HttpExchange ex) {
