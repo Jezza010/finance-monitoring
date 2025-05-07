@@ -117,14 +117,22 @@ public class AuthHandler implements HttpHandler {
             String username = request.get("username");
             String password = request.get("password");
 
+            Function<Integer, String> bad_user_log = status -> gson.toJson(Map.of(
+                    "username", username,
+                    "status", status));
+
             if (username == null || password == null) {
-                sendResponse(ex, 400, Map.of("error", "Username and password are required"));
+                String msg = "Username and password are required";
+                sendResponse(ex, 400, Map.of("error", msg));
+                log.info("\"User {} cannot log in...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
             Optional<User> userOpt = userRepo.findByUsername(username);
             if (userOpt.isEmpty() || !BCrypt.checkpw(password, userOpt.get().getPasswordHash())) {
-                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
+                String msg = "UInvalid username or passwordd";
+                sendResponse(ex, 401, Map.of("error", msg));
+                log.info("\"User {} cannot log in...{}", bad_user_log.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
                 return;
             }
 
@@ -137,12 +145,28 @@ public class AuthHandler implements HttpHandler {
                     .build();
             sessionRepo.save(session);
 
-            String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
-            ex.getResponseHeaders().add("Set-Cookie", cookie);
-            sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
+            var new_session = sessionRepo.findByToken(sessionToken);
+
+            if (new_session.isPresent()) {
+                String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
+                ex.getResponseHeaders().add("Set-Cookie", cookie);
+                sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
+                log.info("User {} log in", gson.toJson(Map.of(
+                        "id", userOpt.get().getId(),
+                        "username", username,
+                        "status", 200)));
+            } else {
+                String msg = "The session was not saved to the database (internal server error)";
+                sendResponse(ex, 500, Map.of("error", msg));
+                log.info("User {} cannot log in...{}", bad_user_log.apply(500), msg);
+            }
+//            String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
+//            ex.getResponseHeaders().add("Set-Cookie", cookie);
+//            sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
         } catch (IOException e) {
             e.printStackTrace();
             sendResponse(ex, 500, Map.of("error", "Internal server error"));
+            log.info("The user cannot log in... {}", e.getMessage());
         }
     }
 
