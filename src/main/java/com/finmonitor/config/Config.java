@@ -30,12 +30,12 @@ public class Config {
     private Config() {}
 
     public static int getHttpServerPort() {
-        int port = 0, default_port = 8080;
+        int port = 8080;
         try {
             port = Integer.parseInt(properties.getProperty("http.server.port"));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return port == 0 ? default_port : port;
+        return port;
     }
 }

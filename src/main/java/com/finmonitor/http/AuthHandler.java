@@ -7,6 +7,7 @@ import com.finmonitor.repository.UserRepository;
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.IOException;
@@ -15,12 +16,14 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 
 // регистрацию и вход без токенов
-
+@Slf4j
 public class AuthHandler implements HttpHandler {
     private final UserRepository userRepo;
     private final SessionRepository sessionRepo;
@@ -63,13 +66,21 @@ public class AuthHandler implements HttpHandler {
             String username = request.get("username");
             String password = request.get("password");
 
+            Function<Integer, String> bad_user_log = status -> gson.toJson(Map.of(
+                "username", username,
+                "status", status));
+
             if (username == null || password == null) {
-                sendResponse(ex, 400, Map.of("error", "Username and password are required"));
+                String msg = "Username and password are required";
+                sendResponse(ex, 400, Map.of("error", msg));
+                log.info("User {} not registered...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
             if (userRepo.findByUsername(username).isPresent()) {
-                sendResponse(ex, 400, Map.of("error", "Username already exists"));
+                String msg = "Username already exists";
+                sendResponse(ex, 400, Map.of("error", msg));
+                log.info("User {} not registered...{}", bad_user_log.apply(400), msg);
                 return;
             }
 
@@ -78,10 +89,24 @@ public class AuthHandler implements HttpHandler {
             user.setPasswordHash(BCrypt.hashpw(password, BCrypt.gensalt()));
             userRepo.save(user);
 
-            sendResponse(ex, 200, Map.of("success", true));
+            var new_user = userRepo.findByUsername(username);
+
+            if (new_user.isPresent()) {
+                sendResponse(ex, 200, Map.of("success", true));
+                log.info("User {} registered", gson.toJson(Map.of(
+                        "id", new_user.get().getId(),
+                        "username", username,
+                        "status", 200)));
+            } else {
+                String msg = "Not recorded into db (internal server error)";
+                sendResponse(ex, 500, Map.of("error", msg));
+                log.info("User {} not registered...{}", bad_user_log.apply(500), msg);
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            sendResponse(ex, 500, Map.of("error", "Internal server error"));
+            String msg = "Internal server error";
+            sendResponse(ex, 500, Map.of("error", msg));
+            log.info("User not registered... {}", e.getMessage());
         }
     }
 
