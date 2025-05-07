@@ -40,7 +40,7 @@ public class AuthHandler implements HttpHandler {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
 
-            Function<Integer, String> bad_request_log = status -> gson.toJson(Map.of(
+            Function<Integer, String> badRequestLog = status -> gson.toJson(Map.of(
                     "method", method.toUpperCase(),
                     "endpoint_path", path,
                     "status", status));
@@ -55,12 +55,12 @@ public class AuthHandler implements HttpHandler {
                 } else {
                     String msg = "Not found";
                     sendResponse(exchange, 404, Map.of("error", msg));
-                    log.warn("Invalid request endpoint path {} ... {}", bad_request_log.apply(404), msg);
+                    log.warn("Invalid request endpoint path {} ... {}", badRequestLog.apply(404), msg);
                 }
             } else {
                 String msg = "Method not allowed";
                 sendResponse(exchange, 405, Map.of("error", msg));
-                log.warn("Invalid request {} ... {}", bad_request_log.apply(405), msg);
+                log.warn("Invalid request {} ... {}", badRequestLog.apply(405), msg);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,21 +77,21 @@ public class AuthHandler implements HttpHandler {
             String username = request.get("username");
             String password = request.get("password");
 
-            Function<Integer, String> bad_user_log = status -> gson.toJson(Map.of(
+            Function<Integer, String> badUserLog = status -> gson.toJson(Map.of(
                 "username", username,
                 "status", status));
 
             if (username == null || password == null) {
                 String msg = "Username and password are required";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.warn("User {} not registered...{}", bad_user_log.apply(400), msg);
+                log.warn("User {} not registered...{}", badUserLog.apply(400), msg);
                 return;
             }
 
             if (userRepo.findByUsername(username).isPresent()) {
                 String msg = "Username already exists";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.warn("User {} not registered...{}", bad_user_log.apply(400), msg);
+                log.warn("User {} not registered...{}", badUserLog.apply(400), msg);
                 return;
             }
 
@@ -102,18 +102,18 @@ public class AuthHandler implements HttpHandler {
 
 //             sendResponse(ex, 200, Map.of("success", true));
 
-            var new_user = userRepo.findByUsername(username);
+            var newUser = userRepo.findByUsername(username);
 
-            if (new_user.isPresent()) {
+            if (newUser.isPresent()) {
                 sendResponse(ex, 200, Map.of("success", true));
                 log.info("User {} registered", gson.toJson(Map.of(
-                        "id", new_user.get().getId(),
+                        "id", newUser.get().getId(),
                         "username", username,
                         "status", 200)));
             } else {
                 String msg = "Not recorded into db (internal server error)";
                 sendResponse(ex, 500, Map.of("error", msg));
-                log.error("User {} not registered...{}", bad_user_log.apply(500), msg);
+                log.error("User {} not registered...{}", badUserLog.apply(500), msg);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -130,14 +130,14 @@ public class AuthHandler implements HttpHandler {
             String username = request.get("username");
             String password = request.get("password");
 
-            Function<Integer, String> bad_user_log = status -> gson.toJson(Map.of(
+            Function<Integer, String> badUserLog = status -> gson.toJson(Map.of(
                     "username", username,
                     "status", status));
 
             if (username == null || password == null) {
                 String msg = "Username and password are required";
                 sendResponse(ex, 400, Map.of("error", msg));
-                log.warn("\"User {} cannot log in...{}", bad_user_log.apply(400), msg);
+                log.warn("\"User {} cannot log in...{}", badUserLog.apply(400), msg);
                 return;
             }
 
@@ -145,7 +145,7 @@ public class AuthHandler implements HttpHandler {
             if (userOpt.isEmpty() || !BCrypt.checkpw(password, userOpt.get().getPasswordHash())) {
                 String msg = "UInvalid username or passwordd";
                 sendResponse(ex, 401, Map.of("error", msg));
-                log.warn("\"User {} cannot log in...{}", bad_user_log.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
+                log.warn("\"User {} cannot log in...{}", badUserLog.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
                 return;
             }
 
@@ -162,9 +162,9 @@ public class AuthHandler implements HttpHandler {
 //             ex.getResponseHeaders().add("Set-Cookie", cookie);
 //             sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
 
-            var new_session = sessionRepo.findByToken(sessionToken);
+            var newSession = sessionRepo.findByToken(sessionToken);
 
-            if (new_session.isPresent()) {
+            if (newSession.isPresent()) {
                 String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
                 ex.getResponseHeaders().add("Set-Cookie", cookie);
                 sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
@@ -175,7 +175,7 @@ public class AuthHandler implements HttpHandler {
             } else {
                 String msg = "The session was not saved to the database (internal server error)";
                 sendResponse(ex, 500, Map.of("error", msg));
-                log.error("User {} cannot log in...{}", bad_user_log.apply(500), msg);
+                log.error("User {} cannot log in...{}", badUserLog.apply(500), msg);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -195,13 +195,13 @@ public class AuthHandler implements HttpHandler {
 //        ex.getResponseHeaders().add("Set-Cookie", cookie);
 //        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
 
-        var del_session = sessionRepo.findByToken(sessionToken);
+        var delSession = sessionRepo.findByToken(sessionToken);
 
-        if (del_session.isPresent()) {
+        if (delSession.isPresent()) {
             String msg = "The session was not deleted (internal server error)";
             sendResponse(ex, 500, Map.of("error", msg));
             log.error("User {} cannot log out...{}", gson.toJson(Map.of(
-                    "id", del_session.get().getUserId(),
+                    "id", delSession.get().getUserId(),
                     "status", 500)),
                     msg);
         } else {
@@ -209,7 +209,7 @@ public class AuthHandler implements HttpHandler {
             ex.getResponseHeaders().add("Set-Cookie", cookie);
             sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
             log.info("User {} log out", gson.toJson(Map.of(
-                            "id", del_session.get().getUserId(),
+                            "id", delSession.get().getUserId(),
                             "status", 200)));
         }
     }
@@ -237,6 +237,12 @@ public class AuthHandler implements HttpHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Exchange by request {}:\n\t{}",
+                    gson.toJson(Map.of(
+                            "method", ex.getRequestMethod(),
+                            "endpoint_path", ex.getRequestURI().getPath(),
+                            "status", 500)),
+                    Map.of("error", "Internal server error: " + e.getMessage()));
         }
     }
 }
