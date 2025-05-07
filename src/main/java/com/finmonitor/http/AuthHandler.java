@@ -89,6 +89,8 @@ public class AuthHandler implements HttpHandler {
             user.setPasswordHash(BCrypt.hashpw(password, BCrypt.gensalt()));
             userRepo.save(user);
 
+//             sendResponse(ex, 200, Map.of("success", true));
+
             var new_user = userRepo.findByUsername(username);
 
             if (new_user.isPresent()) {
@@ -145,6 +147,10 @@ public class AuthHandler implements HttpHandler {
                     .build();
             sessionRepo.save(session);
 
+//             String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
+//             ex.getResponseHeaders().add("Set-Cookie", cookie);
+//             sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
+
             var new_session = sessionRepo.findByToken(sessionToken);
 
             if (new_session.isPresent()) {
@@ -160,9 +166,6 @@ public class AuthHandler implements HttpHandler {
                 sendResponse(ex, 500, Map.of("error", msg));
                 log.info("User {} cannot log in...{}", bad_user_log.apply(500), msg);
             }
-//            String cookie = String.format("session=%s; Path=/; HttpOnly", sessionToken);
-//            ex.getResponseHeaders().add("Set-Cookie", cookie);
-//            sendResponse(ex, 200, Map.of("message", "Login successful", "username", username));
         } catch (IOException e) {
             e.printStackTrace();
             sendResponse(ex, 500, Map.of("error", "Internal server error"));
@@ -175,6 +178,10 @@ public class AuthHandler implements HttpHandler {
         if (sessionToken != null) {
             sessionRepo.deleteByToken(sessionToken);
         }
+
+//        String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
+//        ex.getResponseHeaders().add("Set-Cookie", cookie);
+//        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
 
         var new_session = sessionRepo.findByToken(sessionToken);
 
@@ -193,9 +200,6 @@ public class AuthHandler implements HttpHandler {
                             "id", new_session.get().getUserId(),
                             "status", 200)));
         }
-//        String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
-//        ex.getResponseHeaders().add("Set-Cookie", cookie);
-//        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
     }
 
     private String getSessionToken(HttpExchange ex) {
