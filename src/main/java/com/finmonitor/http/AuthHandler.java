@@ -146,7 +146,7 @@ public class AuthHandler implements HttpHandler {
             if (userOpt.isEmpty() || !BCrypt.checkpw(password, userOpt.get().getPasswordHash())) {
                 String msg = "UInvalid username or passwordd";
                 sendResponse(ex, 401, Map.of("error", msg));
-                log.warn("\"User {} cannot log in...{}", badUserLog.apply(401), msg);                sendResponse(ex, 401, Map.of("error", "Invalid username or password"));
+                log.warn("\"User {} cannot log in...{}", badUserLog.apply(401), msg);
                 return;
             }
 
