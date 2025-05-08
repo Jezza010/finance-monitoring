@@ -16,7 +16,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -187,30 +186,33 @@ public class AuthHandler implements HttpHandler {
 
     private void handleLogout(HttpExchange ex) {
         String sessionToken = getSessionToken(ex);
-        if (sessionToken != null) {
-            sessionRepo.deleteByToken(sessionToken);
-        }
-
+//        if (sessionToken != null) {
+//            sessionRepo.deleteByToken(sessionToken);
+//        }
+//
 //        String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
 //        ex.getResponseHeaders().add("Set-Cookie", cookie);
 //        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
 
-        var delSession = sessionRepo.findByToken(sessionToken);
+        if (sessionToken == null) return;
+        var session = sessionRepo.findByToken(sessionToken);
+        if (session.isEmpty()) return;
 
-        if (delSession.isPresent()) {
+        Function<Integer, String> sessionLog = status -> gson.toJson(Map.of(
+                "id", session.get().getUserId(),
+                "status", status));
+
+        sessionRepo.deleteByToken(sessionToken);
+
+        if (sessionRepo.findByToken(sessionToken).isPresent()) {
             String msg = "The session was not deleted (internal server error)";
             sendResponse(ex, 500, Map.of("error", msg));
-            log.error("User {} cannot log out...{}", gson.toJson(Map.of(
-                    "id", delSession.get().getUserId(),
-                    "status", 500)),
-                    msg);
+            log.error("User {} cannot log out...{}", sessionLog.apply(500), msg);
         } else {
             String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
             ex.getResponseHeaders().add("Set-Cookie", cookie);
             sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
-            log.info("User {} log out", gson.toJson(Map.of(
-                            "id", delSession.get().getUserId(),
-                            "status", 200)));
+            log.info("User {} log out", sessionLog.apply( 200));
         }
     }
 
