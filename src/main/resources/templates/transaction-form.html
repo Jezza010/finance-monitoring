@@ -109,13 +109,48 @@
         <button type="submit" class="btn btn-primary">Сохранить транзакцию</button>
     </form>
 
-<br>
+    <br>
     <br>
 </div>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script>
     $(function() {
       $("#navbar").load("navbar.html");
+    });
+</script>
+<script>
+    document.getElementById("transactionForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const data = {
+            personType: document.getElementById("entityType").value,
+            dateTime: document.getElementById("transactionDate").value,
+            transactionType: document.getElementById("transactionType").value,
+            amount: parseFloat(document.getElementById("amount").value),
+            status: document.getElementById("operationStatus").value,
+            senderBank: document.getElementById("senderBank").value,
+            senderAccountNumber: document.getElementById("accountNumber").value,
+            receiverBank: document.getElementById("recipientBank").value,
+            receiverINN: document.getElementById("recipientInn").value,
+            receiverAccountNumber: document.getElementById("recipientAccount").value,
+            category: document.getElementById("category").value,
+            phone: document.getElementById("recipientPhone").value.replace(/\D/g, ''),
+            comment: document.getElementById("comment").value
+        };
+
+        fetch("/api/transactions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Ошибка: " + response.statusText);
+            return response.text();
+        })
+        .then(text => alert("Успешно: " + text))
+        .catch(err => alert("Ошибка: " + err.message));
     });
 </script>
 </body>

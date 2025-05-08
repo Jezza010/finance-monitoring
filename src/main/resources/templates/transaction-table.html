@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Транзакции</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="apple-touch-icon" sizes="180x180" href="../static/img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../static/img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../static/img/favicon-16x16.png">
     <link rel="manifest" href="../static/img/site.webmanifest">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 </head>
 
 <body>
@@ -21,148 +25,248 @@
 
 <div class="container mt-5">
     <h2>Транзакции</h2>
-    <br>
-    <br>
-    
-        <!-- Фильтры -->
-        <div class="container mt-4">
-            <div class="row">
-                <div class="col-md-4">
-                    <label for="senderBankFilter" class="form-label">Банк отправителя</label>
-                    <select class="form-select" id="senderBankFilter">
-                        <option value="">Выберите банк</option>
-                        <option value="Сбербанк">Сбербанк</option>
-                        <option value="Тинькофф">Тинькофф</option>
-                        <option value="Альфа-Банк">Альфа-Банк</option>
-                    </select>
-                </div>
+    <br><br>
 
-                <div class="col-md-4">
-                    <label for="recipientBankFilter" class="form-label">Банк получателя</label>
-                    <select class="form-select" id="recipientBankFilter">
-                        <option value="">Выберите банк</option>
-                        <option value="Сбербанк">Сбербанк</option>
-                        <option value="Тинькофф">Тинькофф</option>
-                        <option value="Альфа-Банк">Альфа-Банк</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="dateRange" class="form-label">Дата</label>
-                    <input type="text" id="dateRange" class="form-control" placeholder="Выберите диапазон дат" />
-                </div>
+    <!-- Фильтры -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="senderBankFilter" class="form-label">Банк отправителя</label>
+                <select class="form-select" id="senderBankFilter">
+                    <option value="">Выберите банк</option>
+                    <option value="Сбербанк">Сбербанк</option>
+                    <option value="Тинькофф">Тинькофф</option>
+                    <option value="Альфа-Банк">Альфа-Банк</option>
+                </select>
             </div>
 
-            <div class="row mt-3">
-                <div class="col-md-4">
-                    <label for="statusFilter" class="form-label">Статус</label>
-                    <select class="form-select" id="statusFilter" multiple>
-                        <option value="Новая">Новая</option>
-                        <option value="Подтвержденная">Подтвержденная</option>
-                        <option value="В обработке">В обработке</option>
-                        <option value="Отменена">Отменена</option>
-                        <option value="Платеж выполнен">Платеж выполнен</option>
-                        <option value="Платеж удален">Платеж удален</option>
-                        <option value="Возврат">Возврат</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="innFilter" class="form-label">ИНН</label>
-                    <input type="text" class="form-control" id="innFilter" placeholder="Введите ИНН" />
-                </div>
-
-                <div class="col-md-4">
-                    <label for="amountRange" class="form-label">Сумма</label>
-                    <div class="d-flex">
-                        <input type="number" class="form-control" id="minAmount" placeholder="От" />
-                        <input type="number" class="form-control ms-2" id="maxAmount" placeholder="До" />
-                    </div>
-                </div>
+            <div class="col-md-4">
+                <label for="recipientBankFilter" class="form-label">Банк получателя</label>
+                <select class="form-select" id="recipientBankFilter">
+                    <option value="">Выберите банк</option>
+                    <option value="Сбербанк">Сбербанк</option>
+                    <option value="Тинькофф">Тинькофф</option>
+                    <option value="Альфа-Банк">Альфа-Банк</option>
+                </select>
             </div>
 
-            <div class="row mt-3">
-                <div class="col-md-4">
-                    <label for="transactionTypeFilter" class="form-label">Тип операции</label>
-                    <select class="form-select" id="transactionTypeFilter">
-                        <option value="">Выберите тип операции</option>
-                        <option value="Поступление">Поступление</option>
-                        <option value="Списание">Списание</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="categoryFilter" class="form-label">Категория</label>
-                    <select class="form-select" id="categoryFilter">
-                        <option value="">Выберите категорию</option>
-                        <option value="Зарплата">Зарплата</option>
-                        <option value="Коммунальные платежи">Коммунальные платежи</option>
-                        <option value="Покупки">Покупки</option>
-                    </select>
-                </div>
+            <div class="col-md-4">
+                <label for="dateRange" class="form-label">Диапазон дат</label>
+                <input type="text" id="dateRange" class="form-control" placeholder="Выберите диапазон дат" />
             </div>
-            <div class="mt-3">
-                <button class="btn btn-primary" id="filterBtn">Применить фильтры</button>
-            </div>
-            <br>
-            <table id="transactionsTable" class="table table-striped">
-                <thead>
-                <tr>
-                    <th>Тип лица</th>
-                    <th>Дата и время</th>
-                    <th>Тип транзакции</th>
-                    <th>Сумма</th>
-                    <th>Статус</th>
-                    <th>Комментарий</th>
-                    <th>Банк отправителя</th>
-                    <th>Банк получателя</th>
-                    <th>Категория</th>
-                    <th>Действия</th>
-                </tr>
-                </thead>
-            </table>
-
-                    <td>
-                        <button class="btn btn-warning btn-sm">Редактировать</button>
-                        <button class="btn btn-danger btn-sm">Удалить</button>
-                    </td>
-
         </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <label for="statusFilter" class="form-label">Статус</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="Новая">Выберите статус транзакции</option>
+                    <option value="Новая">Новая</option>
+                    <option value="Подтвержденная">Подтвержденная</option>
+                    <option value="В обработке">В обработке</option>
+                    <option value="Отменена">Отменена</option>
+                    <option value="Платеж выполнен">Платеж выполнен</option>
+                    <option value="Платеж удален">Платеж удален</option>
+                    <option value="Возврат">Возврат</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="innFilter" class="form-label">ИНН</label>
+                <input type="text" class="form-control" id="innFilter" placeholder="Введите ИНН" />
+            </div>
+
+            <div class="col-md-4">
+                <label for="amountRange" class="form-label">Сумма</label>
+                <div class="d-flex">
+                    <input type="number" class="form-control" id="minAmount" placeholder="От" />
+                    <input type="number" class="form-control ms-2" id="maxAmount" placeholder="До" />
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <label for="transactionTypeFilter" class="form-label">Тип операции</label>
+                <select class="form-select" id="transactionTypeFilter">
+                    <option value="">Выберите тип операции</option>
+                    <option value="Поступление">Поступление</option>
+                    <option value="Списание">Списание</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="categoryFilter" class="form-label">Категория</label>
+                <select class="form-select" id="categoryFilter">
+                    <option value="">Выберите категорию</option>
+                    <option value="Зарплата">Зарплата</option>
+                    <option value="Коммунальные платежи">Коммунальные платежи</option>
+                    <option value="Покупки">Покупки</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary" id="filterBtn">Применить фильтры</button>
+        </div>
+        <br>
+        <table id="transactionsTable" class="table table-striped">
+            <thead>
+            <tr>
+                <th>Тип лица</th>
+                <th>Дата и время</th>
+                <th>Тип транзакции</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+                <th>Комментарий</th>
+                <th>Банк отправителя</th>
+                <th>Банк получателя</th>
+                <th>Категория</th>
+                <th>Действия</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
 </div>
-</body>
+
+<!-- Модальное окно редактирования -->
+<div class="modal fade" id="editTransactionModal" tabindex="-1" aria-labelledby="editTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="editTransactionForm" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTransactionModalLabel">Редактировать транзакцию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Сумма</label>
+                    <input type="number" class="form-control" name="amount" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Комментарий</label>
+                    <textarea class="form-control" name="comment"></textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    $(document).ready(function() {
-        // Инициализация календаря для фильтра по дате
-        $('#dateRange').daterangepicker({
-            opens: 'left',
-            locale: { format: 'YYYY-MM-DD' }
-        });
+    let startDate = null;
+    let endDate = null;
 
-        // Обработчик кнопки фильтрации
-        $('#filterBtn').click(function() {
-            var senderBank = $('#senderBankFilter').val();
-            var recipientBank = $('#recipientBankFilter').val();
-            var dateRange = $('#dateRange').val();
-            var status = $('#statusFilter').val();
-            var inn = $('#innFilter').val();
-            var minAmount = $('#minAmount').val();
-            var maxAmount = $('#maxAmount').val();
-            var transactionType = $('#transactionTypeFilter').val();
-            var category = $('#categoryFilter').val();
-
-            // Пример логики фильтрации данных таблицы
-            console.log(senderBank, recipientBank, dateRange, status, inn, minAmount, maxAmount, transactionType, category);
-
-        });
-    });
-
-    // Загрузка навбара
-    $(function() {
+    $(document).ready(function () {
         $("#navbar").load("navbar.html");
+
+        $('#dateRange').daterangepicker({
+            autoUpdateInput: false,
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Очистить',
+                applyLabel: 'Применить'
+            }
+        });
+
+        $('#dateRange').on('apply.daterangepicker', function (ev, picker) {
+            startDate = picker.startDate.format('YYYY-MM-DD');
+            endDate = picker.endDate.format('YYYY-MM-DD');
+            $(this).val(startDate + ' - ' + endDate);
+        });
+
+        $('#dateRange').on('cancel.daterangepicker', function () {
+            $(this).val('');
+            startDate = null;
+            endDate = null;
+        });
+
+        const table = $('#transactionsTable').DataTable({
+            ajax: {
+                url: '/api/transaction',
+                data: function (d) {
+                    d.startDate = startDate;
+                    d.endDate = endDate;
+                },
+                dataSrc: ''
+            },
+            columns: [
+                { data: 'personType' },
+                { data: 'transactionDate' },
+                { data: 'transactionType.transactionTypeName' },
+                { data: 'amount' },
+                { data: 'status.transactionStatusName' },
+                { data: 'comment' },
+                { data: 'senderBank' },
+                { data: 'recipientBank' },
+                { data: 'category' },
+                {
+                    data: null,
+                    render: function (data, type, row) {
+                        const status = row.status.transactionStatusName;
+                        if (status === "Новая" || status === "В обработке") {
+                            return `
+                                <button class="btn btn-warning btn-sm edit-btn" data-id="${row.id}">Редактировать</button>
+                                <button class="btn btn-danger btn-sm delete-btn" data-id="${row.id}">Удалить</button>`;
+                        }
+                        return '';
+                    }
+                }
+            ]
+        });
+
+        $('#filterBtn').click(function () {
+            table.ajax.reload();
+        });
+
+        $('#transactionsTable').on('click', '.delete-btn', function () {
+            const id = $(this).data('id');
+            if (confirm("Удалить транзакцию?")) {
+                $.ajax({
+                    url: `/api/delete_transaction?id=${id}`,
+                    type: 'DELETE',
+                    success: function () {
+                        alert("Удалено");
+                        table.ajax.reload();
+                    },
+                    error: function () {
+                        alert("Ошибка удаления");
+                    }
+                });
+            }
+        });
+
+        $('#transactionsTable').on('click', '.edit-btn', function () {
+            const id = $(this).data('id');
+            $.get(`/api/transaction?id=${id}`, function (data) {
+                $('#editTransactionModal').data('id', id);
+                $('#editTransactionModal input[name="amount"]').val(data.amount);
+                $('#editTransactionModal textarea[name="comment"]').val(data.comment);
+                const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
+                modal.show();
+            });
+        });
+
+        $('#editTransactionForm').submit(function (e) {
+            e.preventDefault();
+            const id = $('#editTransactionModal').data('id');
+            const formData = {
+                id: id,
+                amount: $(this).find('input[name="amount"]').val(),
+                comment: $(this).find('textarea[name="comment"]').val()
+            };
+            $.ajax({
+                url: '/api/update_transaction',
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function () {
+                    bootstrap.Modal.getInstance(document.getElementById('editTransactionModal')).hide();
+                    table.ajax.reload();
+                },
+                error: function () {
+                    alert("Ошибка обновления");
+                }
+            });
+        });
     });
 </script>
-
-<script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
 </body>
-
 </html>
