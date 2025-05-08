@@ -1,0 +1,6 @@
+# for docker container — скопируй и переименуй в application.properties
+datasource.db.url=jdbc:postgresql://localhost:5438/finance_db
+datasource.db.user=postgres
+datasource.db.password=postgres
+
+http.server.port=8080
