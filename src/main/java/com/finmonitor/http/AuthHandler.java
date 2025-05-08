@@ -18,7 +18,9 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 
 // регистрацию и вход без токенов
@@ -194,9 +196,23 @@ public class AuthHandler implements HttpHandler {
 //        ex.getResponseHeaders().add("Set-Cookie", cookie);
 //        sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
 
-        if (sessionToken == null) return;
+        Consumer<String> logoutOk = cookie -> {
+            if (cookie == null || cookie.isEmpty()) cookie = "session=; Path=/; HttpOnly; Max-Age=0";
+            ex.getResponseHeaders().add("Set-Cookie", cookie);
+            sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
+        };
+
+        Function<Boolean, Boolean> logoutWithoutSession = hasNotSession -> {
+            if (hasNotSession) {
+                logoutOk.accept("");
+                log.info("User log out");
+            }
+            return hasNotSession;
+        };
+
+        if (logoutWithoutSession.apply(sessionToken == null)) return;
         var session = sessionRepo.findByToken(sessionToken);
-        if (session.isEmpty()) return;
+        if (logoutWithoutSession.apply(session.isEmpty())) return;
 
         Function<Integer, String> sessionLog = status -> gson.toJson(Map.of(
                 "id", session.get().getUserId(),
@@ -209,9 +225,7 @@ public class AuthHandler implements HttpHandler {
             sendResponse(ex, 500, Map.of("error", msg));
             log.error("User {} cannot log out...{}", sessionLog.apply(500), msg);
         } else {
-            String cookie = "session=; Path=/; HttpOnly; Max-Age=0";
-            ex.getResponseHeaders().add("Set-Cookie", cookie);
-            sendResponse(ex, 200, Map.of("message", "Logged out successfully"));
+            logoutOk.accept("");
             log.info("User {} log out", sessionLog.apply( 200));
         }
     }
