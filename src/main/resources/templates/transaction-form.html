@@ -21,8 +21,8 @@
         <div class="mb-3">
             <label for="entityType" class="form-label">Тип лица</label>
             <select class="form-select" id="entityType" required>
-                <option value="individual">Физическое лицо</option>
-                <option value="legal">Юридическое лицо</option>
+                <option value="Физическое лицо">Физическое лицо</option>
+                <option value="Юридическое лицо">Юридическое лицо</option>
             </select>
         </div>
         <div class="mb-3">
@@ -32,8 +32,8 @@
         <div class="mb-3">
             <label for="transactionType" class="form-label">Тип транзакции</label>
             <select class="form-select" id="transactionType" required>
-                <option value="income">Поступление</option>
-                <option value="expense">Списание</option>
+                <option value="Поступление">Поступление</option>
+                <option value="Списание">Списание</option>
             </select>
         </div>
         <div class="mb-3">
@@ -134,7 +134,7 @@
             receiverINN: document.getElementById("recipientInn").value,
             receiverAccountNumber: document.getElementById("recipientAccount").value,
             category: document.getElementById("category").value,
-            phone: document.getElementById("recipientPhone").value.replace(/\D/g, ''),
+            phone: document.getElementById("recipientPhone").value,
             comment: document.getElementById("comment").value
         };
 

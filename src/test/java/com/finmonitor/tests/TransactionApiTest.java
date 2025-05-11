@@ -19,7 +19,7 @@ public class TransactionApiTest {
 
     @BeforeAll
     public static void setup() {
-        RestAssured.baseURI = "http://localhost:8080/api";
+        RestAssured.baseURI = "http://localhost:8086/api";
         var user = """
                         {"username":"testUser","password":"testUserPassword"}
                    """;

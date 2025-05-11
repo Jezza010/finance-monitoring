@@ -65,7 +65,7 @@ public class Transaction  implements Serializable {
             throw new IllegalArgumentException("ИНН должен быть в формате 11 цифр");
         }
 
-        if (!phone.matches("^(\\+7|8)\\d{10}$")) {
+        if (!phone.matches("^(\\+7\\d{10}|8\\d{10})$")) {
             throw new IllegalArgumentException("Номер должен быть в формате +7/8 и 10 цифр");
         }
     }

@@ -11,25 +11,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: YOUR_PASSWORD_HERE
-          POSTGRES_DB: finance_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: start services
+        run: docker-compose up -d
+
+      - name: Wait
+        run: while [ "$(curl -s localhost:8086/api/auth/login)" != '{"error":"Method not allowed"}' ]; do sleep 1; done
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -37,26 +27,5 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Wait for Postgres
-        run: |
-          until pg_isready -h localhost -p 5432; do
-            echo "Waiting for postgres..."
-            sleep 2
-          done
-
-      - name: Apply schema and data
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-          psql -h localhost -U postgres -d finance_db -f database/schema.sql
-          psql -h localhost -U postgres -d finance_db -f database/data.sql
-        env:
-          PGPASSWORD: YOUR_PASSWORD_HERE
-
       - name: Tests
-        run: |
-          mvn package -DskipTests
-          java -jar target/app.jar &
-          pid=$!
-          mvn test
-          kill $pid
+        run: mvn test

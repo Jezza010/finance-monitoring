@@ -3,11 +3,7 @@ version: '3.8'
 volumes:
   finance_monitoring_data:
 
-networks:
-  dev_backend:
-
 services:
-
   pg_db:
     image: 'postgres:latest'
     container_name: finance_monitoring_pg_db
@@ -15,13 +11,11 @@ services:
       POSTGRES_DB: 'finance_db'
       POSTGRES_PASSWORD: 'postgres'
       POSTGRES_USER: 'postgres'
-    ports:
-      - '5438:5432'
+    expose:
+      - '5432'
     volumes:
       - ./services/finance_monitoring_data:/var/lib/postgresql/data
       - ./src/main/resources/db:/docker-entrypoint-initdb.d
-    networks:
-      - dev_backend
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -36,16 +30,22 @@ services:
       PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - ./services/pgadmin:/var/lib/pgadmin
-    networks:
-      - dev_backend
+
+  backend:
+    build: .
+    container_name: finance-monitoring-backend
+    depends_on:
+      - pg_db
+    expose:
+      - "8080"
 
   static-server:
     image: nginx:alpine
     container_name: my-static-server
+    depends_on:
+      - backend
     ports:
       - "8086:81"
     volumes:
       - ./src/main/resources:/usr/share/nginx/html:ro
       - ./src/main/resources/frontend.conf:/etc/nginx/conf.d/frontend.conf:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
