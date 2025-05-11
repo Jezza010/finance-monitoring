@@ -151,122 +151,132 @@
 </div>
 
 <script>
-    let startDate = null;
-    let endDate = null;
-
     $(document).ready(function () {
-        $("#navbar").load("navbar.html");
+      $("#navbar").load("navbar.html");
 
-        $('#dateRange').daterangepicker({
-            autoUpdateInput: false,
-            locale: {
-                format: 'YYYY-MM-DD',
-                cancelLabel: 'Очистить',
-                applyLabel: 'Применить'
-            }
-        });
+      $('#dateRange').daterangepicker({
+          autoUpdateInput: false,
+          locale: {
+              format: 'YYYY-MM-DD',
+              cancelLabel: 'Очистить',
+              applyLabel: 'Применить'
+          }
+      });
 
-        $('#dateRange').on('apply.daterangepicker', function (ev, picker) {
-            startDate = picker.startDate.format('YYYY-MM-DD');
-            endDate = picker.endDate.format('YYYY-MM-DD');
-            $(this).val(startDate + ' - ' + endDate);
-        });
+      $('#dateRange').on('apply.daterangepicker', function (ev, picker) {
+          startDate = picker.startDate.format('YYYY-MM-DD');
+          endDate = picker.endDate.format('YYYY-MM-DD');
+          $(this).val(startDate + ' - ' + endDate);
+      });
 
-        $('#dateRange').on('cancel.daterangepicker', function () {
-            $(this).val('');
-            startDate = null;
-            endDate = null;
-        });
+      $('#dateRange').on('cancel.daterangepicker', function () {
+          $(this).val('');
+          startDate = null;
+          endDate = null;
+      });
 
-        const table = $('#transactionsTable').DataTable({
-            ajax: {
-                url: '/api/transaction',
-                data: function (d) {
-                    d.startDate = startDate;
-                    d.endDate = endDate;
-                },
-                dataSrc: ''
-            },
-            columns: [
-                { data: 'personType' },
-                { data: 'transactionDate' },
-                { data: 'transactionType.transactionTypeName' },
-                { data: 'amount' },
-                { data: 'status.transactionStatusName' },
-                { data: 'comment' },
-                { data: 'senderBank' },
-                { data: 'recipientBank' },
-                { data: 'category' },
-                {
-                    data: null,
-                    render: function (data, type, row) {
-                        const status = row.status.transactionStatusName;
-                        if (status === "Новая" || status === "В обработке") {
-                            return `
-                                <button class="btn btn-warning btn-sm edit-btn" data-id="${row.id}">Редактировать</button>
-                                <button class="btn btn-danger btn-sm delete-btn" data-id="${row.id}">Удалить</button>`;
-                        }
-                        return '';
-                    }
-                }
-            ]
-        });
+      const table = $('#transactionsTable').DataTable({
+          ajax: {
+              url: '/api/transaction',
+              data: function (d) {
+                  // Добавляем параметры фильтров в запрос
+                  d.startDate = startDate;
+                  d.endDate = endDate;
+                  d.senderBank = $('#senderBankFilter').val();
+                  d.recipientBank = $('#recipientBankFilter').val();
+                  d.status = $('#statusFilter').val();
+                  d.inn = $('#innFilter').val();
+                  d.minAmount = $('#minAmount').val();
+                  d.maxAmount = $('#maxAmount').val();
+                  d.transactionType = $('#transactionTypeFilter').val();
+                  d.category = $('#categoryFilter').val();
+              },
+              dataSrc: ''
+          },
+          columns: [
+              { data: 'personType' },
+              { data: 'transactionDate' },
+              { data: 'transactionType.transactionTypeName' },
+              { data: 'amount' },
+              { data: 'status.transactionStatusName' },
+              { data: 'comment' },
+              { data: 'senderBank' },
+              { data: 'recipientBank' },
+              { data: 'category' },
+              {
+                  data: null,
+                  render: function (data, type, row) {
+                      const status = row.status.transactionStatusName;
+                      if (status === "Новая" || status === "В обработке") {
+                          return `
+                              <button class="btn btn-warning btn-sm edit-btn" data-id="${row.id}">Редактировать</button>
+                              <button class="btn btn-danger btn-sm delete-btn" data-id="${row.id}">Удалить</button>`;
+                      }
+                      return '';
+                  }
+              }
+          ]
+      });
 
-        $('#filterBtn').click(function () {
-            table.ajax.reload();
-        });
+      // Применить фильтры
+      $('#filterBtn').click(function () {
+          table.ajax.reload();
+      });
 
-        $('#transactionsTable').on('click', '.delete-btn', function () {
-            const id = $(this).data('id');
-            if (confirm("Удалить транзакцию?")) {
-                $.ajax({
-                    url: `/api/delete_transaction?id=${id}`,
-                    type: 'DELETE',
-                    success: function () {
-                        alert("Удалено");
-                        table.ajax.reload();
-                    },
-                    error: function () {
-                        alert("Ошибка удаления");
-                    }
-                });
-            }
-        });
+      // Удаление транзакции
+      $('#transactionsTable').on('click', '.delete-btn', function () {
+          const id = $(this).data('id');
+          if (confirm("Удалить транзакцию?")) {
+              $.ajax({
+                  url: `/api/delete_transaction?id=${id}`,
+                  type: 'DELETE',
+                  success: function () {
+                      alert("Удалено");
+                      table.ajax.reload();
+                  },
+                  error: function () {
+                      alert("Ошибка удаления");
+                  }
+              });
+          }
+      });
 
-        $('#transactionsTable').on('click', '.edit-btn', function () {
-            const id = $(this).data('id');
-            $.get(`/api/transaction?id=${id}`, function (data) {
-                $('#editTransactionModal').data('id', id);
-                $('#editTransactionModal input[name="amount"]').val(data.amount);
-                $('#editTransactionModal textarea[name="comment"]').val(data.comment);
-                const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
-                modal.show();
-            });
-        });
+      // Редактирование транзакции
+      $('#transactionsTable').on('click', '.edit-btn', function () {
+          const id = $(this).data('id');
+          $.get(`/api/transaction?id=${id}`, function (data) {
+              $('#editTransactionModal').data('id', id);
+              $('#editTransactionModal input[name="amount"]').val(data.amount);
+              $('#editTransactionModal textarea[name="comment"]').val(data.comment);
+              const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
+              modal.show();
+          });
+      });
 
-        $('#editTransactionForm').submit(function (e) {
-            e.preventDefault();
-            const id = $('#editTransactionModal').data('id');
-            const formData = {
-                id: id,
-                amount: $(this).find('input[name="amount"]').val(),
-                comment: $(this).find('textarea[name="comment"]').val()
-            };
-            $.ajax({
-                url: '/api/update_transaction',
-                type: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                success: function () {
-                    bootstrap.Modal.getInstance(document.getElementById('editTransactionModal')).hide();
-                    table.ajax.reload();
-                },
-                error: function () {
-                    alert("Ошибка обновления");
-                }
-            });
-        });
-    });
+      // Обновление транзакции
+      $('#editTransactionForm').submit(function (e) {
+          e.preventDefault();
+          const id = $('#editTransactionModal').data('id');
+          const formData = {
+              id: id,
+              amount: $(this).find('input[name="amount"]').val(),
+              comment: $(this).find('textarea[name="comment"]').val()
+          };
+          $.ajax({
+              url: '/api/update_transaction',
+              type: 'PUT',
+              contentType: 'application/json',
+              data: JSON.stringify(formData),
+              success: function () {
+                  bootstrap.Modal.getInstance(document.getElementById('editTransactionModal')).hide();
+                  table.ajax.reload();
+              },
+              error: function () {
+                  alert("Ошибка обновления");
+              }
+          });
+      });
+  });
 </script>
 </body>
 </html>

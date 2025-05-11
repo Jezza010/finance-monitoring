@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="apple-touch-icon" sizes="180x180" href="../static/img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../static/img/favicon-32x32.png">
@@ -17,8 +19,6 @@
 <body>
 
 <div id="navbar"></div>
-
-
 <div class="container mt-5">
 <h2>Дашборды</h2>
     <br>
@@ -37,6 +37,7 @@
     <div id="frame1" class="dashboard-frame active">
         <h3 class="text-center">Динамика по количеству транзакций</h3>
         <br>
+        <button id="download-transaction-count" class="btn btn-primary">Скачать в PDF</button>
         <div class="d-flex justify-content-center mb-4">
             <button id="weekBtn" class="btn btn-outline-primary mx-2">Неделя</button>
             <button id="monthBtn" class="btn btn-outline-primary mx-2">Месяц</button>
@@ -49,7 +50,8 @@
     <!-- Дашборд 2 -->
         <div id="frame2" class="dashboard-frame">
             <h2 class="text-center">Динамика по типу транзакции</h2>
-<br>
+            <br>
+            <button id="download-debit-credit" class="btn btn-primary">Скачать в PDF</button>
             <div class="d-flex justify-content-center mb-4">
                 <button id="type-weekBtn" class="btn btn-outline-primary mx-2">Неделя</button>
                 <button id="type-monthBtn" class="btn btn-outline-primary mx-2 active">Месяц</button>
@@ -72,6 +74,8 @@
     <!-- Дашборд 3 -->
     <div id="frame3" class="dashboard-frame">
         <h3 class="text-center">Сравнение поступлений и расходов</h3>
+        <br>
+        <button id="download-income-expense" class="btn btn-primary">Скачать в PDF</button>
         <div class="row">
             <div class="col-md-6">
                 <canvas id="incomeExpenseBarChart"></canvas>
@@ -85,12 +89,16 @@
     <!-- Дашборд 4 -->
     <div id="frame4" class="dashboard-frame">
         <h3 class="text-center">Статистика по статусам транзакций</h3>
+        <br>
+        <button id="download-status" class="btn btn-primary">Скачать в PDF</button>
         <canvas id="statusPieChart"></canvas>
     </div>
 
     <!-- Дашборд 5 -->
     <div id="frame5" class="dashboard-frame">
         <h3 class="text-center">Статистика по банкам</h3>
+        <br>
+        <button id="download-banks" class="btn btn-primary">Скачать в PDF</button>
         <div class="row">
             <div class="col-md-6">
                 <h5 class="text-center">Отправители</h5>
@@ -106,6 +114,8 @@
     <!-- Дашборд 6 -->
     <div id="frame6" class="dashboard-frame">
         <h3 class="text-center">Статистика по категориям</h3>
+        <br>
+        <button id="download-categories" class="btn btn-primary">Скачать в PDF</button>
         <div class="row">
             <div class="col-md-6">
                 <h5 class="text-center">Расходы</h5>
@@ -217,17 +227,23 @@
         }
     });
 
-    // Заглушка для будущего API
+   async function fetchDebitCreditData(period) {
+    const response = await fetch(`/api/transactions/sum_by_type?period=${period}`);
+    const result = await response.json();
 
-    function fetchDebitCreditData(period) {
-        debitChart.data.labels = ['Янв', 'Фев', 'Мар'];
-        debitChart.data.datasets[0].data = [0, 0, 0];
-        debitChart.update();
+    const labels = result.map(point => point.x);
 
-        creditChart.data.labels = ['Янв', 'Фев', 'Мар'];
-        creditChart.data.datasets[0].data = [0, 0, 0];
-        creditChart.update();
-    }
+    const debitValues = result.map(point => point.debit || 0);
+    const creditValues = result.map(point => point.credit || 0);
+
+    debitChart.data.labels = labels;
+    debitChart.data.datasets[0].data = debitValues;
+    debitChart.update();
+
+    creditChart.data.labels = labels;
+    creditChart.data.datasets[0].data = creditValues;
+    creditChart.update();
+}
 
     document.getElementById('type-weekBtn').addEventListener('click', () => fetchDebitCreditData('W'));
     document.getElementById('type-monthBtn').addEventListener('click', () => fetchDebitCreditData('M'));
@@ -242,7 +258,7 @@
             labels: ['Поступления', 'Расходы'],
             datasets: [{
                 label: 'Сумма (₽)',
-                data: [0, 0], // Заглушки
+                data: [], // Заглушки
                 backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'],
                 borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
                 borderWidth: 1
@@ -274,7 +290,7 @@
         data: {
             labels: ['Поступления', 'Расходы'],
             datasets: [{
-                data: [0, 0], // Заглушки
+                data: [],
                 backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 159, 64, 0.6)'],
                 borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 159, 64, 1)'],
                 borderWidth: 1
@@ -291,24 +307,28 @@
         }
     });
 
-    // Заглушка функции получения данных
-    function fetchIncomeExpenseData(period = 'M') {
-        // Пример: Поступления = 0, Расходы = 0
-        incomeExpenseBarChart.data.datasets[0].data = [0, 0];
-        incomeExpenseBarChart.update();
+   async function fetchIncomeExpenseData(period = 'M') {
+    const response = await fetch(`/api/transactions/sum_total?period=${period}`);
+    const result = await response.json();
 
-        incomeExpensePieChart.data.datasets[0].data = [0, 0];
-        incomeExpensePieChart.update();
-    }
+    const income = result.income || 0;
+    const expense = result.expense || 0;
+
+    incomeExpenseBarChart.data.datasets[0].data = [income, expense];
+    incomeExpenseBarChart.update();
+
+    incomeExpensePieChart.data.datasets[0].data = [income, expense];
+    incomeExpensePieChart.update();
+}
 
     fetchIncomeExpenseData();
          const statusPieCtx = document.getElementById('statusPieChart').getContext('2d');
     const statusPieChart = new Chart(statusPieCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Проведенные', 'Отмененные', 'В ожидании'], // Добавляем дополнительные статусы, если нужно
+            labels: ['Новая', 'Подтвержденная', 'В обработке', 'Платеж выполнен', 'Платеж удален', 'Возврат', 'Отменена'],
             datasets: [{
-                data: [0, 0, 0], // Заглушки
+                data: [],
                 backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(255, 159, 64, 0.6)'],
                 borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
                 borderWidth: 1
@@ -325,12 +345,17 @@
         }
     });
 
-    // Заглушка функции получения данных
-    function fetchTransactionStatusData(period = 'M') {
-        // Пример: Проведенные = 0, Отмененные = 0, В ожидании = 0
-        statusPieChart.data.datasets[0].data = [0, 0, 0];
-        statusPieChart.update();
-    }
+    async function fetchTransactionStatusData(period = 'M') {
+    const response = await fetch(`/api/transactions/status_distribution?period=${period}`);
+    const result = await response.json();
+
+    const statuses = result.map(item => item.status);
+    const counts = result.map(item => item.count);
+
+    statusPieChart.data.labels = statuses;
+    statusPieChart.data.datasets[0].data = counts;
+    statusPieChart.update();
+}
 
     fetchTransactionStatusData();
          const senderBanksCtx = document.getElementById('senderBanksChart').getContext('2d');
@@ -400,22 +425,23 @@
         }
     });
 
-    // Заглушка для получения данных по транзакциям
-    function fetchBankStatistics() {
-        // Пример данных (настоящие данные нужно будет получить через API)
-        senderBanksChart.data.labels = ['Банк 1', 'Банк 2', 'Банк 3'];
-        senderBanksChart.data.datasets[0].data = [0, 0, 0];
+async function fetchBankStatistics() {
+    const senderResponse = await fetch('/api/transactions/banks?role=sender');
+    const senderData = await senderResponse.json();
 
-        receiverBanksChart.data.labels = ['Банк 1', 'Банк 2', 'Банк 3'];
-        receiverBanksChart.data.datasets[0].data = [0, 0, 0];
+    senderBanksChart.data.labels = senderData.map(item => item.bank);
+    senderBanksChart.data.datasets[0].data = senderData.map(item => item.count);
+    sortChartData(senderBanksChart);
+    senderBanksChart.update();
 
-        // Сортировка по количеству транзакций (по убыванию)
-        sortChartData(senderBanksChart);
-        sortChartData(receiverBanksChart);
+    const receiverResponse = await fetch('/api/transactions/banks?role=receiver');
+    const receiverData = await receiverResponse.json();
 
-        senderBanksChart.update();
-        receiverBanksChart.update();
-    }
+    receiverBanksChart.data.labels = receiverData.map(item => item.bank);
+    receiverBanksChart.data.datasets[0].data = receiverData.map(item => item.count);
+    sortChartData(receiverBanksChart);
+    receiverBanksChart.update();
+}
 
     function sortChartData(chart) {
         const sortedData = chart.data.labels
@@ -433,10 +459,10 @@
     const expenseCategoriesChart = new Chart(expenseCategoriesCtx, {
         type: 'doughnut', // Круговая диаграмма
         data: {
-            labels: ['Категория 1', 'Категория 2', 'Категория 3'], // Пример категорий
+            labels: [],
             datasets: [{
                 label: 'Категории расходов',
-                data: [40, 30, 30], // Пример данных
+                data: [],
                 backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
                 borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
                 borderWidth: 1
@@ -453,13 +479,29 @@
         }
     });
 
+async function fetchCategoryStatistics() {
+    const expenseRes = await fetch('/api/transactions/categories?type=debit');
+    const expenseData = await expenseRes.json();
+
+    expenseCategoriesChart.data.labels = expenseData.map(item => item.category);
+    expenseCategoriesChart.data.datasets[0].data = expenseData.map(item => item.sum);
+    expenseCategoriesChart.update();
+
+    const incomeRes = await fetch('/api/transactions/categories?type=credit');
+    const incomeData = await incomeRes.json();
+
+    incomeCategoriesChart.data.labels = incomeData.map(item => item.category);
+    incomeCategoriesChart.data.datasets[0].data = incomeData.map(item => item.sum);
+    incomeCategoriesChart.update();
+}
+fetchCategoryStatistics();
     const incomeCategoriesChart = new Chart(incomeCategoriesCtx, {
         type: 'doughnut', // Круговая диаграмма
         data: {
-            labels: ['Категория 1', 'Категория 2', 'Категория 3'], // Пример категорий
+            labels: [],
             datasets: [{
                 label: 'Категории поступлений',
-                data: [50, 20, 30], // Пример данных
+                data: [],
                 backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 205, 86, 0.6)'],
                 borderColor: ['rgba(255, 159, 64, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 205, 86, 1)'],
                 borderWidth: 1
@@ -482,10 +524,10 @@
 
         if (type === 'expense') {
             categoryName = `Категория расходов ${index + 1}`;
-            categoryData = [40, 30, 30]; // Пример данных для категорий расходов
+            categoryData = [];
         } else if (type === 'income') {
             categoryName = `Категория поступлений ${index + 1}`;
-            categoryData = [50, 20, 30]; // Пример данных для категорий поступлений
+            categoryData = [];
         }
 
         const categoryDetailsText = `Вы выбрали ${categoryName}. Подробная информация: сумма ${categoryData[index]}`;
@@ -498,8 +540,7 @@
     }
 
     fetchCategoryData();
-</script>
-    <script>
+
         document.querySelectorAll('#dashboardButtons button').forEach(button => {
             button.addEventListener('click', () => {
                 document.querySelectorAll('.dashboard-frame').forEach(frame => frame.classList.remove('active'));
@@ -512,15 +553,104 @@
         });
 
         document.getElementById('frame1').classList.add('active');
-    </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
+    document.getElementById("download-debit-credit").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Тип транзакций: дебет/кредит", 10, 10);
+
+    // Используем html2canvas для захвата графиков
+    html2canvas(document.getElementById("debitChart")).then((canvas) => {
+        const debitChartImage = canvas.toDataURL("image/png");
+        doc.addImage(debitChartImage, "PNG", 10, 20, 180, 100); // График дебетовых транзакций
+    });
+
+    html2canvas(document.getElementById("creditChart")).then((canvas) => {
+        const creditChartImage = canvas.toDataURL("image/png");
+        doc.addImage(creditChartImage, "PNG", 10, 130, 180, 100); // График кредитовых транзакций
+        doc.save("debit-credit.pdf");
+    });
+});
+
+document.getElementById("download-income-expense").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Поступления / Расходы", 10, 10);
+
+    // Захватываем изображения для бар и pie графиков
+    html2canvas(document.getElementById("incomeExpenseBarChart")).then((canvas) => {
+        const barChartImage = canvas.toDataURL("image/png");
+        doc.addImage(barChartImage, "PNG", 10, 20, 180, 100); // Бар график
+    });
+
+    html2canvas(document.getElementById("incomeExpensePieChart")).then((canvas) => {
+        const pieChartImage = canvas.toDataURL("image/png");
+        doc.addImage(pieChartImage, "PNG", 10, 130, 180, 100); // Pie график
+        doc.save("income-expense.pdf");
+    });
+});
+
+document.getElementById("download-status").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Статусы транзакций", 10, 10);
+
+    // Захватываем pie график
+    html2canvas(document.getElementById("statusPieChart")).then((canvas) => {
+        const pieChartImage = canvas.toDataURL("image/png");
+        doc.addImage(pieChartImage, "PNG", 10, 20, 180, 100); // Pie график
+        doc.save("status-transactions.pdf");
+    });
+});
+
+document.getElementById("download-banks").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Банки отправители / получатели", 10, 10);
+
+    // Захватываем изображения для графиков банков
+    html2canvas(document.getElementById("senderBanksChart")).then((canvas) => {
+        const senderChartImage = canvas.toDataURL("image/png");
+        doc.addImage(senderChartImage, "PNG", 10, 20, 180, 100); // График банков отправителей
+    });
+
+    html2canvas(document.getElementById("receiverBanksChart")).then((canvas) => {
+        const receiverChartImage = canvas.toDataURL("image/png");
+        doc.addImage(receiverChartImage, "PNG", 10, 130, 180, 100); // График банков получателей
+        doc.save("banks-transactions.pdf");
+    });
+});
+
+document.getElementById("download-categories").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Категории транзакций", 10, 10);
+
+    // Захватываем изображения для графиков категорий
+    html2canvas(document.getElementById("expenseCategoriesChart")).then((canvas) => {
+        const expenseChartImage = canvas.toDataURL("image/png");
+        doc.addImage(expenseChartImage, "PNG", 10, 20, 180, 100); // График категорий расходов
+    });
+
+    html2canvas(document.getElementById("incomeCategoriesChart")).then((canvas) => {
+        const incomeChartImage = canvas.toDataURL("image/png");
+        doc.addImage(incomeChartImage, "PNG", 10, 130, 180, 100); // График категорий доходов
+        doc.save("categories-transactions.pdf");
+    });
+});
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(function() {
           $("#navbar").load("navbar.html");
         });
     </script>
 
-
+</div>
 </body>
 </html>

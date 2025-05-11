@@ -71,4 +71,92 @@ $(document).ready(function() {
         }
     });
 
+document.getElementById("download-debit-credit").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
+    doc.text("Тип транзакций: дебет/кредит", 10, 10);
+
+    // Используем html2canvas для захвата графиков
+    html2canvas(document.getElementById("debitChart")).then((canvas) => {
+        const debitChartImage = canvas.toDataURL("image/png");
+        doc.addImage(debitChartImage, "PNG", 10, 20, 180, 100); // График дебетовых транзакций
+    });
+
+    html2canvas(document.getElementById("creditChart")).then((canvas) => {
+        const creditChartImage = canvas.toDataURL("image/png");
+        doc.addImage(creditChartImage, "PNG", 10, 130, 180, 100); // График кредитовых транзакций
+        doc.save("debit-credit.pdf");
+    });
+});
+
+document.getElementById("download-income-expense").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Поступления / Расходы", 10, 10);
+
+    // Захватываем изображения для бар и pie графиков
+    html2canvas(document.getElementById("incomeExpenseBarChart")).then((canvas) => {
+        const barChartImage = canvas.toDataURL("image/png");
+        doc.addImage(barChartImage, "PNG", 10, 20, 180, 100); // Бар график
+    });
+
+    html2canvas(document.getElementById("incomeExpensePieChart")).then((canvas) => {
+        const pieChartImage = canvas.toDataURL("image/png");
+        doc.addImage(pieChartImage, "PNG", 10, 130, 180, 100); // Pie график
+        doc.save("income-expense.pdf");
+    });
+});
+
+document.getElementById("download-status").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Статусы транзакций", 10, 10);
+
+    // Захватываем pie график
+    html2canvas(document.getElementById("statusPieChart")).then((canvas) => {
+        const pieChartImage = canvas.toDataURL("image/png");
+        doc.addImage(pieChartImage, "PNG", 10, 20, 180, 100); // Pie график
+        doc.save("status-transactions.pdf");
+    });
+});
+
+document.getElementById("download-banks").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Банки отправители / получатели", 10, 10);
+
+    // Захватываем изображения для графиков банков
+    html2canvas(document.getElementById("senderBanksChart")).then((canvas) => {
+        const senderChartImage = canvas.toDataURL("image/png");
+        doc.addImage(senderChartImage, "PNG", 10, 20, 180, 100); // График банков отправителей
+    });
+
+    html2canvas(document.getElementById("receiverBanksChart")).then((canvas) => {
+        const receiverChartImage = canvas.toDataURL("image/png");
+        doc.addImage(receiverChartImage, "PNG", 10, 130, 180, 100); // График банков получателей
+        doc.save("banks-transactions.pdf");
+    });
+});
+
+document.getElementById("download-categories").addEventListener("click", () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Категории транзакций", 10, 10);
+
+    // Захватываем изображения для графиков категорий
+    html2canvas(document.getElementById("expenseCategoriesChart")).then((canvas) => {
+        const expenseChartImage = canvas.toDataURL("image/png");
+        doc.addImage(expenseChartImage, "PNG", 10, 20, 180, 100); // График категорий расходов
+    });
+
+    html2canvas(document.getElementById("incomeCategoriesChart")).then((canvas) => {
+        const incomeChartImage = canvas.toDataURL("image/png");
+        doc.addImage(incomeChartImage, "PNG", 10, 130, 180, 100); // График категорий доходов
+        doc.save("categories-transactions.pdf");
+    });
+});
