@@ -95,117 +95,220 @@
 
             <!-- Скрипты -->
             <script>
-
-                document.getElementById("register-link").addEventListener("click", function (e) {
-                    e.preventDefault();
-                    document.getElementById("loginModal").style.display = "none";
-                    document.getElementById("registerModal").style.display = "flex";
-                });
-
-                // Авторизация
-                document.getElementById("loginForm").addEventListener("submit", async function (e) {
-                    e.preventDefault();
-
-                    const username = document.getElementById("login").value;
-                    const password = document.getElementById("lpassword").value;
-
-                    try {
-                        const response = await fetch(`/api/auth/login`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ username, password })
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok) {
-                            alert("Успешный вход: " + result.username);
-                            window.location.reload();
-                        } else {
-                            alert(result.error || "Ошибка авторизации");
-                        }
-                    } catch (error) {
-                        alert("Ошибка соединения с сервером");
-                        console.error(error);
-                    }
-                });
-
-                // Регистрация
-                document.getElementById("registerForm").addEventListener("submit", async function (e) {
-                    e.preventDefault();
-
-                    const username = document.getElementById("username").value;
-                    const password = document.getElementById("password").value;
-                    const confirm = document.getElementById("confirm_password").value;
-
-                    if (password !== confirm) {
-                        alert("Пароли не совпадают!");
-                        return;
-                    }
-
-                    try {
-                        const response = await fetch(`/api/auth/register`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ username, password })
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok) {
-                            alert("Регистрация успешна!");
-                            document.getElementById("registerModal").style.display = "none";
-                            document.getElementById("loginModal").style.display = "block";
-                        } else {
-                            alert(result.error || "Ошибка при регистрации");
-                        }
-                    } catch (error) {
-                        alert("Ошибка соединения с сервером");
-                        console.error(error);
-                    }
-                });
-
-                // Проверка сессии при загрузке страницы
+                // Check session status
                 async function checkSession() {
                     try {
-                        const response = await fetch('/api/auth/session', {
-                            credentials: "include"
+                        const response = await fetch('/api/auth/check', {
+                            method: 'GET',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
                         });
-                        
+
                         if (response.ok) {
                             const data = await response.json();
-                            // Показываем имя пользователя и кнопку выхода
-                            const navItem = document.querySelector('#btn-nav-logo').parentElement;
-                            navItem.innerHTML = `
-                                <span class="nav-link">${data.username}</span>
-                                <button class="btn btn-link nav-link" id="logoutBtn">Выйти</button>
-                            `;
-                            
-                            // Добавляем обработчик для кнопки выхода
-                            document.getElementById('logoutBtn').addEventListener('click', async () => {
-                                try {
-                                    const response = await fetch('/api/auth/logout', {
-                                        method: 'POST',
-                                        credentials: "include"
-                                    });
-                                    
-                                    if (response.ok) {
-                                        window.location.reload();
-                                    }
-                                } catch (error) {
-                                    console.error('Ошибка при выходе:', error);
-                                }
-                            });
+                            updateAuthUI(data.authenticated, data.username);
+                        } else if (response.status === 404) {
+                            // Handle missing endpoint gracefully
+                            console.warn('Session check endpoint not found, assuming not authenticated');
+                            updateAuthUI(false);
+                        } else {
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
                     } catch (error) {
-                        console.error('Ошибка при проверке сессии:', error);
+                        console.error('Session check failed:', error);
+                        updateAuthUI(false);
                     }
                 }
 
-                // Проверяем сессию при загрузке страницы
-                checkSession();
+                function updateAuthUI(isAuthenticated, username = null) {
+                    const authButton = document.getElementById('btn-nav-logo');
+                    if (!authButton) return;
 
+                    if (isAuthenticated && username) {
+                        authButton.innerHTML = `
+                            <span class="nav-link">${username}</span>
+                            <button class="btn btn-link nav-link" id="logoutBtn">Выйти</button>
+                        `;
+                        
+                        // Add logout handler
+                        const logoutBtn = document.getElementById('logoutBtn');
+                        if (logoutBtn) {
+                            logoutBtn.addEventListener('click', handleLogout);
+                        }
+                    } else {
+                        authButton.innerHTML = `
+                            Авторизация
+                            <img src="../static/img/login.png" style="padding-left: 10px;" alt="login">
+                        `;
+                        authButton.addEventListener('click', () => {
+                            const loginModal = document.getElementById('loginModal');
+                            if (loginModal) {
+                                loginModal.style.display = 'flex';
+                            }
+                        });
+                    }
+                }
+
+                async function handleLogout() {
+                    try {
+                        const response = await fetch('/api/auth/logout', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            showToast('Успешный выход из системы');
+                            window.location.reload();
+                        } else {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        showToast('Ошибка при выходе из системы', true);
+                    }
+                }
+
+                // Initialize auth UI
+                document.addEventListener('DOMContentLoaded', () => {
+                    checkSession();
+                });
+
+                // Handle login form submission
+                document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const submitButton = this.querySelector('input[type="submit"]');
+                    const originalText = submitButton.value;
+                    
+                    try {
+                        submitButton.value = 'Вход...';
+                        submitButton.disabled = true;
+
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                username: document.getElementById('login').value,
+                                password: document.getElementById('lpassword').value
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            showToast('Успешный вход');
+                            window.location.reload();
+                        } else {
+                            showToast(data.error || 'Ошибка авторизации', true);
+                        }
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        showToast('Ошибка соединения с сервером', true);
+                    } finally {
+                        submitButton.value = originalText;
+                        submitButton.disabled = false;
+                    }
+                });
+
+                // Handle registration form submission
+                document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const submitButton = this.querySelector('input[type="submit"]');
+                    const originalText = submitButton.value;
+                    
+                    try {
+                        submitButton.value = 'Регистрация...';
+                        submitButton.disabled = true;
+
+                        const password = document.getElementById('password').value;
+                        const confirmPassword = document.getElementById('confirm_password').value;
+
+                        if (password !== confirmPassword) {
+                            showToast('Пароли не совпадают', true);
+                            return;
+                        }
+
+                        const response = await fetch('/api/auth/register', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                username: document.getElementById('username').value,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            showToast('Регистрация успешна');
+                            document.getElementById('registerModal').style.display = 'none';
+                            document.getElementById('loginModal').style.display = 'flex';
+                        } else {
+                            showToast(data.error || 'Ошибка при регистрации', true);
+                        }
+                    } catch (error) {
+                        console.error('Registration error:', error);
+                        showToast('Ошибка соединения с сервером', true);
+                    } finally {
+                        submitButton.value = originalText;
+                        submitButton.disabled = false;
+                    }
+                });
+
+                // Toast notification function
+                function showToast(message, isError = false) {
+                    const toast = document.getElementById('toast');
+                    if (!toast) return;
+
+                    toast.textContent = message;
+                    toast.style.backgroundColor = isError ? '#dc3545' : '#323232';
+                    toast.classList.add('show');
+
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 3000);
+                }
+
+                // Close modal when clicking outside
+                window.addEventListener('click', function(e) {
+                    const loginModal = document.getElementById('loginModal');
+                    const registerModal = document.getElementById('registerModal');
+                    
+                    if (e.target === loginModal) {
+                        loginModal.style.display = 'none';
+                    }
+                    if (e.target === registerModal) {
+                        registerModal.style.display = 'none';
+                    }
+                });
+
+                // Close modal buttons
+                document.querySelectorAll('.modal__close-button').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const modal = this.closest('.modal');
+                        if (modal) {
+                            modal.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Switch between login and register modals
+                document.getElementById('register-link').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.getElementById('loginModal').style.display = 'none';
+                    document.getElementById('registerModal').style.display = 'flex';
+                });
             </script>
 <script src="../static/js/script.js"></script>

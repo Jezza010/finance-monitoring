@@ -130,556 +130,553 @@
 
 
     <script>
-    const ctx = document.getElementById('transactionChart').getContext('2d');
+    let isAuthenticated = false;
 
-    let chart = new Chart(ctx, {
-        type: 'line', // Тип графика
-        data: {
-            labels: [], // Метки для оси X (временные интервалы)
-            datasets: [{
-                label: 'Количество транзакций',
-                data: [], // Данные для оси Y (количество транзакций)
-                borderColor: 'rgba(75, 192, 192, 1)',
-                fill: false
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Временные периоды'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Количество транзакций'
-                    },
-                    beginAtZero: true
-                }
-            }
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        checkSessionAndInit();
     });
 
+    async function checkSessionAndInit() {
+        try {
+            const response = await fetch('/api/auth/check', {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                isAuthenticated = data.authenticated;
+            } else {
+                isAuthenticated = false;
+            }
+        } catch (e) {
+            isAuthenticated = false;
+        }
+
+        if (isAuthenticated) {
+            initializeCharts();
+            initializeEventListeners();
+            loadInitialData();
+        } else {
+            showNotAuthenticatedMessage();
+        }
+    }
+
+    function showNotAuthenticatedMessage() {
+        const container = document.querySelector('.container');
+        if (container) {
+            container.innerHTML = '<div class="alert alert-warning mt-5 text-center">Пожалуйста, войдите в систему для просмотра дашборда.</div>';
+        }
+    }
+
+    function initializeCharts() {
+        // Transaction count chart
+        const transactionCtx = document.getElementById('transactionChart');
+        if (transactionCtx) {
+            window.transactionChart = new Chart(transactionCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Количество транзакций',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Период' } },
+                        y: { title: { display: true, text: 'Количество' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Debit/Credit charts
+        const debitCtx = document.getElementById('debitChart');
+        const creditCtx = document.getElementById('creditChart');
+        
+        if (debitCtx) {
+            window.debitChart = new Chart(debitCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Дебет',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Период' } },
+                        y: { title: { display: true, text: 'Сумма' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        if (creditCtx) {
+            window.creditChart = new Chart(creditCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Кредит',
+                        data: [],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Период' } },
+                        y: { title: { display: true, text: 'Сумма' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Income/Expense charts
+        const incomeExpenseBarCtx = document.getElementById('incomeExpenseBarChart');
+        const incomeExpensePieCtx = document.getElementById('incomeExpensePieChart');
+        
+        if (incomeExpenseBarCtx) {
+            window.incomeExpenseBarChart = new Chart(incomeExpenseBarCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Поступления', 'Расходы'],
+                    datasets: [{
+                        label: 'Сумма (₽)',
+                        data: [0, 0],
+                        backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        if (incomeExpensePieCtx) {
+            window.incomeExpensePieChart = new Chart(incomeExpensePieCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Поступления', 'Расходы'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 159, 64, 0.6)']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        // Status chart
+        const statusCtx = document.getElementById('statusPieChart');
+        if (statusCtx) {
+            window.statusPieChart = new Chart(statusCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Новая', 'Подтвержденная', 'В обработке', 'Платеж выполнен', 'Платеж удален', 'Возврат', 'Отменена'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(255, 159, 64, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 205, 86, 0.6)',
+                            'rgba(201, 203, 207, 0.6)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        // Banks charts
+        const senderBanksCtx = document.getElementById('senderBanksChart');
+        const receiverBanksCtx = document.getElementById('receiverBanksChart');
+        
+        if (senderBanksCtx) {
+            window.senderBanksChart = new Chart(senderBanksCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Количество транзакций (Отправители)',
+                        data: [],
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        if (receiverBanksCtx) {
+            window.receiverBanksChart = new Chart(receiverBanksCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Количество транзакций (Получатели)',
+                        data: [],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Categories charts
+        const expenseCategoriesCtx = document.getElementById('expenseCategoriesChart');
+        const incomeCategoriesCtx = document.getElementById('incomeCategoriesChart');
+        
+        if (expenseCategoriesCtx) {
+            window.expenseCategoriesChart = new Chart(expenseCategoriesCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Категории расходов',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(75, 192, 192, 0.6)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        if (incomeCategoriesCtx) {
+            window.incomeCategoriesChart = new Chart(incomeCategoriesCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Категории поступлений',
+                        data: [],
+                        backgroundColor: [
+                            'rgba(255, 159, 64, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 205, 86, 0.6)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+    }
+
+    function initializeEventListeners() {
+        // Period buttons
+        const periodButtons = {
+            'weekBtn': 'W',
+            'monthBtn': 'M',
+            'quarterBtn': 'Q',
+            'yearBtn': 'Y'
+        };
+
+        Object.entries(periodButtons).forEach(([id, period]) => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', () => fetchTransactionData(period));
+            }
+        });
+
+        // Type period buttons
+        const typePeriodButtons = {
+            'type-weekBtn': 'W',
+            'type-monthBtn': 'M',
+            'type-quarterBtn': 'Q',
+            'type-yearBtn': 'Y'
+        };
+
+        Object.entries(typePeriodButtons).forEach(([id, period]) => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', () => fetchDebitCreditData(period));
+            }
+        });
+
+        // Dashboard buttons
+        const dashboardButtons = document.querySelectorAll('#dashboardButtons button');
+        dashboardButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetFrameId = button.getAttribute('data-frame');
+                if (targetFrameId) {
+                    document.querySelectorAll('.dashboard-frame').forEach(frame => {
+                        frame.classList.remove('active');
+                    });
+                    document.querySelectorAll('#dashboardButtons button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    const targetFrame = document.getElementById(targetFrameId);
+                    if (targetFrame) {
+                        targetFrame.classList.add('active');
+                        button.classList.add('active');
+                    }
+                }
+            });
+        });
+    }
+
+    function loadInitialData() {
+        fetchTransactionData('M');
+        fetchDebitCreditData('M');
+        fetchIncomeExpenseData();
+        fetchStatusData();
+        fetchBanksData();
+        fetchCategoriesData();
+    }
+
+    // Chart update functions
+    function updateIncomeExpenseCharts(data) {
+        if (!data) return;
+        
+        const barChart = window.incomeExpenseBarChart;
+        const pieChart = window.incomeExpensePieChart;
+        
+        if (barChart) {
+            barChart.data.datasets[0].data = [data.income || 0, data.expense || 0];
+            barChart.update();
+        }
+        
+        if (pieChart) {
+            pieChart.data.datasets[0].data = [data.income || 0, data.expense || 0];
+            pieChart.update();
+        }
+    }
+
+    function updateStatusChart(data) {
+        if (!data) return;
+        
+        const chart = window.statusPieChart;
+        if (chart) {
+            chart.data.datasets[0].data = Object.values(data);
+            chart.update();
+        }
+    }
+
+    function updateBanksCharts(data) {
+        if (!data) return;
+        
+        const senderChart = window.senderBanksChart;
+        const receiverChart = window.receiverBanksChart;
+        
+        if (senderChart) {
+            senderChart.data.labels = Object.keys(data.sender || {});
+            senderChart.data.datasets[0].data = Object.values(data.sender || {});
+            senderChart.update();
+        }
+        
+        if (receiverChart) {
+            receiverChart.data.labels = Object.keys(data.receiver || {});
+            receiverChart.data.datasets[0].data = Object.values(data.receiver || {});
+            receiverChart.update();
+        }
+    }
+
+    function updateCategoriesCharts(data) {
+        if (!data) return;
+        
+        const expenseChart = window.expenseCategoriesChart;
+        const incomeChart = window.incomeCategoriesChart;
+        
+        if (expenseChart) {
+            expenseChart.data.labels = Object.keys(data.expense || {});
+            expenseChart.data.datasets[0].data = Object.values(data.expense || {});
+            expenseChart.update();
+        }
+        
+        if (incomeChart) {
+            incomeChart.data.labels = Object.keys(data.income || {});
+            incomeChart.data.datasets[0].data = Object.values(data.income || {});
+            incomeChart.update();
+        }
+    }
+
+    // Data fetching functions with error handling
     async function fetchTransactionData(period) {
         try {
             const response = await fetch(`/api/transactions_count?period=${period}`, {
-                credentials: "include"
+                credentials: 'include'
             });
             
             if (!response.ok) {
-                throw new Error('Ошибка при загрузке данных');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            const labels = data.map(point => point.x);
-            const values = data.map(point => point.y);
+            if (!data || !Array.isArray(data)) {
+                throw new Error('Invalid data format received');
+            }
 
-            chart.data.labels = labels;
-            chart.data.datasets[0].data = values;
-            chart.update();
+            const chart = window.transactionChart;
+            if (chart) {
+                chart.data.labels = data.map(point => point.x);
+                chart.data.datasets[0].data = data.map(point => point.y);
+                chart.update();
+            }
         } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Ошибка при загрузке данных');
+            console.error('Error fetching transaction data:', error);
+            showToast('Ошибка при загрузке данных о транзакциях', true);
         }
     }
 
-    document.getElementById('weekBtn').addEventListener('click', () => fetchTransactionData('W'));
-    document.getElementById('monthBtn').addEventListener('click', () => fetchTransactionData('M'));
-    document.getElementById('quarterBtn').addEventListener('click', () => fetchTransactionData('Q'));
-    document.getElementById('yearBtn').addEventListener('click', () => fetchTransactionData('Y'));
-
-    fetchTransactionData('M');
-         const debitCtx = document.getElementById('debitChart').getContext('2d');
-    const creditCtx = document.getElementById('creditChart').getContext('2d');
-
-    const debitChart = new Chart(debitCtx, {
-        type: 'line',
-        data: {
-            labels: [], // Подписи по оси X
-            datasets: [{
-                label: 'Дебет',
-                data: [],   // Данные для дебета
-                borderColor: 'rgba(255, 99, 132, 1)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Период' } },
-                y: { title: { display: true, text: 'Сумма' }, beginAtZero: true }
-            }
-        }
-    });
-
-    const creditChart = new Chart(creditCtx, {
-        type: 'line',
-        data: {
-            labels: [], // Подписи по оси X
-            datasets: [{
-                label: 'Кредит',
-                data: [],   // Данные для кредита
-                borderColor: 'rgba(54, 162, 235, 1)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Период' } },
-                y: { title: { display: true, text: 'Сумма' }, beginAtZero: true }
-            }
-        }
-    });
-
-   async function fetchDebitCreditData(period) {
+    async function fetchDebitCreditData(period) {
         try {
             const response = await fetch(`/api/transactions/sum_by_type?period=${period}`, {
-                credentials: "include"
+                credentials: 'include'
             });
             
             if (!response.ok) {
-                throw new Error('Ошибка при загрузке данных');
-            }
-            
-            const result = await response.json();
-            const labels = result.map(point => point.x);
-            const debitValues = result.map(point => point.debit || 0);
-            const creditValues = result.map(point => point.credit || 0);
-
-            debitChart.data.labels = labels;
-            debitChart.data.datasets[0].data = debitValues;
-            debitChart.update();
-
-            creditChart.data.labels = labels;
-            creditChart.data.datasets[0].data = creditValues;
-            creditChart.update();
-        } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Ошибка при загрузке данных');
-        }
-    }
-
-    document.getElementById('type-weekBtn').addEventListener('click', () => fetchDebitCreditData('W'));
-    document.getElementById('type-monthBtn').addEventListener('click', () => fetchDebitCreditData('M'));
-    document.getElementById('type-quarterBtn').addEventListener('click', () => fetchDebitCreditData('Q'));
-    document.getElementById('type-yearBtn').addEventListener('click', () => fetchDebitCreditData('Y'));
-
-    fetchDebitCreditData('M');
-          const incomeExpenseBarCtx = document.getElementById('incomeExpenseBarChart').getContext('2d');
-    const incomeExpenseBarChart = new Chart(incomeExpenseBarCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Поступления', 'Расходы'],
-            datasets: [{
-                label: 'Сумма (₽)',
-                data: [], // Заглушки
-                backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'],
-                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Сравнение поступлений и расходов'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Сумма в рублях'
-                    }
-                }
-            }
-        }
-    });
-
-    const incomeExpensePieCtx = document.getElementById('incomeExpensePieChart').getContext('2d');
-    const incomeExpensePieChart = new Chart(incomeExpensePieCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Поступления', 'Расходы'],
-            datasets: [{
-                data: [],
-                backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 159, 64, 0.6)'],
-                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 159, 64, 1)'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Профицит / Дефицит'
-                }
-            }
-        }
-    });
-
-   async function fetchIncomeExpenseData() {
-        try {
-            const response = await fetch('/api/transactions/income_expense', {
-                credentials: "include"
-            });
-            
-            if (!response.ok) {
-                throw new Error('Ошибка при загрузке данных');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            // Update income expense charts
-            updateIncomeExpenseCharts(data);
+            if (!data || !Array.isArray(data)) {
+                throw new Error('Invalid data format received');
+            }
+
+            const debitChart = window.debitChart;
+            const creditChart = window.creditChart;
+
+            if (debitChart) {
+                debitChart.data.labels = data.map(point => point.x);
+                debitChart.data.datasets[0].data = data.map(point => point.debit || 0);
+                debitChart.update();
+            }
+
+            if (creditChart) {
+                creditChart.data.labels = data.map(point => point.x);
+                creditChart.data.datasets[0].data = data.map(point => point.credit || 0);
+                creditChart.update();
+            }
         } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Ошибка при загрузке данных');
+            console.error('Error fetching debit/credit data:', error);
+            showToast('Ошибка при загрузке данных о дебете/кредите', true);
         }
     }
 
-    fetchIncomeExpenseData();
-         const statusPieCtx = document.getElementById('statusPieChart').getContext('2d');
-    const statusPieChart = new Chart(statusPieCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Новая', 'Подтвержденная', 'В обработке', 'Платеж выполнен', 'Платеж удален', 'Возврат', 'Отменена'],
-            datasets: [{
-                data: [],
-                backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(255, 159, 64, 0.6)'],
-                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(255, 159, 64, 1)'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Статистика по статусам транзакций'
-                }
+    async function fetchIncomeExpenseData() {
+        try {
+            const response = await fetch('/api/transactions/income_expense', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const data = await response.json();
+            updateIncomeExpenseCharts(data);
+        } catch (error) {
+            console.error('Error fetching income/expense data:', error);
+            showToast('Ошибка при загрузке данных о доходах/расходах', true);
         }
-    });
+    }
 
     async function fetchStatusData() {
         try {
             const response = await fetch('/api/transactions/status_stats', {
-                credentials: "include"
+                credentials: 'include'
             });
             
             if (!response.ok) {
-                throw new Error('Ошибка при загрузке данных');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            // Update status chart
             updateStatusChart(data);
         } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Ошибка при загрузке данных');
+            console.error('Error fetching status data:', error);
+            showToast('Ошибка при загрузке данных о статусах', true);
         }
     }
 
-    fetchStatusData();
-         const senderBanksCtx = document.getElementById('senderBanksChart').getContext('2d');
-    const receiverBanksCtx = document.getElementById('receiverBanksChart').getContext('2d');
-
-    const senderBanksChart = new Chart(senderBanksCtx, {
-        type: 'bar', // Столбчатая диаграмма
-        data: {
-            labels: [], // Метки (названия банков)
-            datasets: [{
-                label: 'Количество транзакций (Отправители)',
-                data: [], // Данные для количества транзакций
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Банки'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Количество транзакций'
-                    },
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    const receiverBanksChart = new Chart(receiverBanksCtx, {
-        type: 'bar', // Столбчатая диаграмма
-        data: {
-            labels: [], // Метки (названия банков)
-            datasets: [{
-                label: 'Количество транзакций (Получатели)',
-                data: [], // Данные для количества транзакций
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Банки'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Количество транзакций'
-                    },
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-async function fetchBanksData() {
-    try {
-        const response = await fetch('/api/transactions/banks_stats', {
-            credentials: "include"
-        });
-        
-        if (!response.ok) {
-            throw new Error('Ошибка при загрузке данных');
-        }
-        
-        const data = await response.json();
-        // Update banks charts
-        updateBanksCharts(data);
-    } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Ошибка при загрузке данных');
-    }
-}
-
-    function sortChartData(chart) {
-        const sortedData = chart.data.labels
-            .map((label, index) => ({ label, value: chart.data.datasets[0].data[index] }))
-            .sort((a, b) => b.value - a.value); // Сортируем по убыванию
-
-        chart.data.labels = sortedData.map(item => item.label);
-        chart.data.datasets[0].data = sortedData.map(item => item.value);
-    }
-
-    fetchBanksData();
-         const expenseCategoriesCtx = document.getElementById('expenseCategoriesChart').getContext('2d');
-    const incomeCategoriesCtx = document.getElementById('incomeCategoriesChart').getContext('2d');
-
-    const expenseCategoriesChart = new Chart(expenseCategoriesCtx, {
-        type: 'doughnut', // Круговая диаграмма
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Категории расходов',
-                data: [],
-                backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-                borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(75, 192, 192, 1)'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            onClick: (event, elements) => {
-                if (elements.length > 0) {
-                    const index = elements[0].index;
-                    showCategoryDetails('expense', index);
-                }
-            }
-        }
-    });
-
-async function fetchCategoriesData() {
-    try {
-        const response = await fetch('/api/transactions/categories_stats', {
-            credentials: "include"
-        });
-        
-        if (!response.ok) {
-            throw new Error('Ошибка при загрузке данных');
-        }
-        
-        const data = await response.json();
-        // Update categories charts
-        updateCategoriesCharts(data);
-    } catch (error) {
-        console.error('Ошибка:', error);
-        alert('Ошибка при загрузке данных');
-    }
-}
-fetchCategoriesData();
-    const incomeCategoriesChart = new Chart(incomeCategoriesCtx, {
-        type: 'doughnut', // Круговая диаграмма
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Категории поступлений',
-                data: [],
-                backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 205, 86, 0.6)'],
-                borderColor: ['rgba(255, 159, 64, 1)', 'rgba(153, 102, 255, 1)', 'rgba(255, 205, 86, 1)'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            onClick: (event, elements) => {
-                if (elements.length > 0) {
-                    const index = elements[0].index;
-                    showCategoryDetails('income', index);
-                }
-            }
-        }
-    });
-
-    function showCategoryDetails(type, index) {
-        let categoryName = '';
-        let categoryData = [];
-
-        if (type === 'expense') {
-            categoryName = `Категория расходов ${index + 1}`;
-            categoryData = [];
-        } else if (type === 'income') {
-            categoryName = `Категория поступлений ${index + 1}`;
-            categoryData = [];
-        }
-
-        const categoryDetailsText = `Вы выбрали ${categoryName}. Подробная информация: сумма ${categoryData[index]}`;
-        document.getElementById('categoryDetailsText').innerText = categoryDetailsText;
-    }
-
-    function fetchCategoryData() {
-        expenseCategoriesChart.update();
-        incomeCategoriesChart.update();
-    }
-
-    fetchCategoryData();
-
-        document.querySelectorAll('#dashboardButtons button').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.dashboard-frame').forEach(frame => frame.classList.remove('active'));
-                document.querySelectorAll('#dashboardButtons button').forEach(btn => btn.classList.remove('active'));
-
-                const targetFrameId = button.getAttribute('data-frame');
-                document.getElementById(targetFrameId).classList.add('active');
-                button.classList.add('active');
+    async function fetchBanksData() {
+        try {
+            const response = await fetch('/api/transactions/banks_stats', {
+                credentials: 'include'
             });
-        });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            updateBanksCharts(data);
+        } catch (error) {
+            console.error('Error fetching banks data:', error);
+            showToast('Ошибка при загрузке данных о банках', true);
+        }
+    }
 
-        document.getElementById('frame1').classList.add('active');
+    async function fetchCategoriesData() {
+        try {
+            const response = await fetch('/api/transactions/categories_stats', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            updateCategoriesCharts(data);
+        } catch (error) {
+            console.error('Error fetching categories data:', error);
+            showToast('Ошибка при загрузке данных о категориях', true);
+        }
+    }
 
-    document.getElementById("download-debit-credit").addEventListener("click", () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    // Toast notification function
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
 
-    doc.text("Тип транзакций: дебет/кредит", 10, 10);
+        toast.textContent = message;
+        toast.style.backgroundColor = isError ? '#dc3545' : '#323232';
+        toast.classList.add('show');
 
-    // Используем html2canvas для захвата графиков
-    html2canvas(document.getElementById("debitChart")).then((canvas) => {
-        const debitChartImage = canvas.toDataURL("image/png");
-        doc.addImage(debitChartImage, "PNG", 10, 20, 180, 100); // График дебетовых транзакций
-    });
-
-    html2canvas(document.getElementById("creditChart")).then((canvas) => {
-        const creditChartImage = canvas.toDataURL("image/png");
-        doc.addImage(creditChartImage, "PNG", 10, 130, 180, 100); // График кредитовых транзакций
-        doc.save("debit-credit.pdf");
-    });
-});
-
-document.getElementById("download-income-expense").addEventListener("click", () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.text("Поступления / Расходы", 10, 10);
-
-    // Захватываем изображения для бар и pie графиков
-    html2canvas(document.getElementById("incomeExpenseBarChart")).then((canvas) => {
-        const barChartImage = canvas.toDataURL("image/png");
-        doc.addImage(barChartImage, "PNG", 10, 20, 180, 100); // Бар график
-    });
-
-    html2canvas(document.getElementById("incomeExpensePieChart")).then((canvas) => {
-        const pieChartImage = canvas.toDataURL("image/png");
-        doc.addImage(pieChartImage, "PNG", 10, 130, 180, 100); // Pie график
-        doc.save("income-expense.pdf");
-    });
-});
-
-document.getElementById("download-status").addEventListener("click", () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.text("Статусы транзакций", 10, 10);
-
-    // Захватываем pie график
-    html2canvas(document.getElementById("statusPieChart")).then((canvas) => {
-        const pieChartImage = canvas.toDataURL("image/png");
-        doc.addImage(pieChartImage, "PNG", 10, 20, 180, 100); // Pie график
-        doc.save("status-transactions.pdf");
-    });
-});
-
-document.getElementById("download-banks").addEventListener("click", () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.text("Банки отправители / получатели", 10, 10);
-
-    // Захватываем изображения для графиков банков
-    html2canvas(document.getElementById("senderBanksChart")).then((canvas) => {
-        const senderChartImage = canvas.toDataURL("image/png");
-        doc.addImage(senderChartImage, "PNG", 10, 20, 180, 100); // График банков отправителей
-    });
-
-    html2canvas(document.getElementById("receiverBanksChart")).then((canvas) => {
-        const receiverChartImage = canvas.toDataURL("image/png");
-        doc.addImage(receiverChartImage, "PNG", 10, 130, 180, 100); // График банков получателей
-        doc.save("banks-transactions.pdf");
-    });
-});
-
-document.getElementById("download-categories").addEventListener("click", () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.text("Категории транзакций", 10, 10);
-
-    // Захватываем изображения для графиков категорий
-    html2canvas(document.getElementById("expenseCategoriesChart")).then((canvas) => {
-        const expenseChartImage = canvas.toDataURL("image/png");
-        doc.addImage(expenseChartImage, "PNG", 10, 20, 180, 100); // График категорий расходов
-    });
-
-    html2canvas(document.getElementById("incomeCategoriesChart")).then((canvas) => {
-        const incomeChartImage = canvas.toDataURL("image/png");
-        doc.addImage(incomeChartImage, "PNG", 10, 130, 180, 100); // График категорий доходов
-        doc.save("categories-transactions.pdf");
-    });
-});
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
 </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
