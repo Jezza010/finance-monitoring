@@ -117,10 +117,34 @@
     $(function() {
       $("#navbar").load("navbar.html");
     });
-</script>
-<script>
-    document.getElementById("transactionForm").addEventListener("submit", function(e) {
+
+    // Phone number validation
+    function validatePhoneNumber(phone) {
+        const phoneRegex = /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/;
+        return phoneRegex.test(phone);
+    }
+
+    // Format phone number as user types
+    document.getElementById("recipientPhone").addEventListener("input", function(e) {
+        let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+        e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + ') ' + (x[3] ? x[3] + '-' + x[4] : x[3]) + (x[5] ? '-' + x[5] : '');
+    });
+
+    document.getElementById("transactionForm").addEventListener("submit", async function(e) {
         e.preventDefault();
+
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = "Сохранение...";
+
+        const phone = document.getElementById("recipientPhone").value;
+        if (!validatePhoneNumber(phone)) {
+            alert("Пожалуйста, введите корректный номер телефона в формате: +7 (XXX) XXX-XX-XX");
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+            return;
+        }
 
         const data = {
             personType: document.getElementById("entityType").value,
@@ -134,23 +158,34 @@
             receiverINN: document.getElementById("recipientInn").value,
             receiverAccountNumber: document.getElementById("recipientAccount").value,
             category: document.getElementById("category").value,
-            phone: document.getElementById("recipientPhone").value,
+            phone: phone,
             comment: document.getElementById("comment").value
         };
 
-        fetch("/api/transactions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Ошибка: " + response.statusText);
-            return response.text();
-        })
-        .then(text => alert("Успешно: " + text))
-        .catch(err => alert("Ошибка: " + err.message));
+        try {
+            const response = await fetch("/api/transactions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Ошибка при создании транзакции");
+            }
+
+            const result = await response.json();
+            alert("Транзакция успешно создана");
+            window.location.href = "/transactions";
+        } catch (err) {
+            alert("Ошибка: " + err.message);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+        }
     });
 </script>
 </body>

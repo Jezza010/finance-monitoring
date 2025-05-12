@@ -163,15 +163,26 @@
     });
 
     async function fetchTransactionData(period) {
-        const response = await fetch(`/api/transactions_count?period=${period}`);
-        const data = await response.json();
+        try {
+            const response = await fetch(`/api/transactions_count?period=${period}`, {
+                credentials: "include"
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке данных');
+            }
+            
+            const data = await response.json();
+            const labels = data.map(point => point.x);
+            const values = data.map(point => point.y);
 
-        const labels = data.map(point => point.x); // Метки времени
-        const values = data.map(point => point.y); // Значения по оси Y
-
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = values;
-        chart.update();
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = values;
+            chart.update();
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при загрузке данных');
+        }
     }
 
     document.getElementById('weekBtn').addEventListener('click', () => fetchTransactionData('W'));
@@ -228,22 +239,32 @@
     });
 
    async function fetchDebitCreditData(period) {
-    const response = await fetch(`/api/transactions/sum_by_type?period=${period}`);
-    const result = await response.json();
+        try {
+            const response = await fetch(`/api/transactions/sum_by_type?period=${period}`, {
+                credentials: "include"
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке данных');
+            }
+            
+            const result = await response.json();
+            const labels = result.map(point => point.x);
+            const debitValues = result.map(point => point.debit || 0);
+            const creditValues = result.map(point => point.credit || 0);
 
-    const labels = result.map(point => point.x);
+            debitChart.data.labels = labels;
+            debitChart.data.datasets[0].data = debitValues;
+            debitChart.update();
 
-    const debitValues = result.map(point => point.debit || 0);
-    const creditValues = result.map(point => point.credit || 0);
-
-    debitChart.data.labels = labels;
-    debitChart.data.datasets[0].data = debitValues;
-    debitChart.update();
-
-    creditChart.data.labels = labels;
-    creditChart.data.datasets[0].data = creditValues;
-    creditChart.update();
-}
+            creditChart.data.labels = labels;
+            creditChart.data.datasets[0].data = creditValues;
+            creditChart.update();
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
 
     document.getElementById('type-weekBtn').addEventListener('click', () => fetchDebitCreditData('W'));
     document.getElementById('type-monthBtn').addEventListener('click', () => fetchDebitCreditData('M'));
@@ -307,19 +328,24 @@
         }
     });
 
-   async function fetchIncomeExpenseData(period = 'M') {
-    const response = await fetch(`/api/transactions/sum_total?period=${period}`);
-    const result = await response.json();
-
-    const income = result.income || 0;
-    const expense = result.expense || 0;
-
-    incomeExpenseBarChart.data.datasets[0].data = [income, expense];
-    incomeExpenseBarChart.update();
-
-    incomeExpensePieChart.data.datasets[0].data = [income, expense];
-    incomeExpensePieChart.update();
-}
+   async function fetchIncomeExpenseData() {
+        try {
+            const response = await fetch('/api/transactions/income_expense', {
+                credentials: "include"
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке данных');
+            }
+            
+            const data = await response.json();
+            // Update income expense charts
+            updateIncomeExpenseCharts(data);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
 
     fetchIncomeExpenseData();
          const statusPieCtx = document.getElementById('statusPieChart').getContext('2d');
@@ -345,19 +371,26 @@
         }
     });
 
-    async function fetchTransactionStatusData(period = 'M') {
-    const response = await fetch(`/api/transactions/status_distribution?period=${period}`);
-    const result = await response.json();
+    async function fetchStatusData() {
+        try {
+            const response = await fetch('/api/transactions/status_stats', {
+                credentials: "include"
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке данных');
+            }
+            
+            const data = await response.json();
+            // Update status chart
+            updateStatusChart(data);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
 
-    const statuses = result.map(item => item.status);
-    const counts = result.map(item => item.count);
-
-    statusPieChart.data.labels = statuses;
-    statusPieChart.data.datasets[0].data = counts;
-    statusPieChart.update();
-}
-
-    fetchTransactionStatusData();
+    fetchStatusData();
          const senderBanksCtx = document.getElementById('senderBanksChart').getContext('2d');
     const receiverBanksCtx = document.getElementById('receiverBanksChart').getContext('2d');
 
@@ -425,22 +458,23 @@
         }
     });
 
-async function fetchBankStatistics() {
-    const senderResponse = await fetch('/api/transactions/banks?role=sender');
-    const senderData = await senderResponse.json();
-
-    senderBanksChart.data.labels = senderData.map(item => item.bank);
-    senderBanksChart.data.datasets[0].data = senderData.map(item => item.count);
-    sortChartData(senderBanksChart);
-    senderBanksChart.update();
-
-    const receiverResponse = await fetch('/api/transactions/banks?role=receiver');
-    const receiverData = await receiverResponse.json();
-
-    receiverBanksChart.data.labels = receiverData.map(item => item.bank);
-    receiverBanksChart.data.datasets[0].data = receiverData.map(item => item.count);
-    sortChartData(receiverBanksChart);
-    receiverBanksChart.update();
+async function fetchBanksData() {
+    try {
+        const response = await fetch('/api/transactions/banks_stats', {
+            credentials: "include"
+        });
+        
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        
+        const data = await response.json();
+        // Update banks charts
+        updateBanksCharts(data);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка при загрузке данных');
+    }
 }
 
     function sortChartData(chart) {
@@ -452,7 +486,7 @@ async function fetchBankStatistics() {
         chart.data.datasets[0].data = sortedData.map(item => item.value);
     }
 
-    fetchBankStatistics();
+    fetchBanksData();
          const expenseCategoriesCtx = document.getElementById('expenseCategoriesChart').getContext('2d');
     const incomeCategoriesCtx = document.getElementById('incomeCategoriesChart').getContext('2d');
 
@@ -479,22 +513,25 @@ async function fetchBankStatistics() {
         }
     });
 
-async function fetchCategoryStatistics() {
-    const expenseRes = await fetch('/api/transactions/categories?type=debit');
-    const expenseData = await expenseRes.json();
-
-    expenseCategoriesChart.data.labels = expenseData.map(item => item.category);
-    expenseCategoriesChart.data.datasets[0].data = expenseData.map(item => item.sum);
-    expenseCategoriesChart.update();
-
-    const incomeRes = await fetch('/api/transactions/categories?type=credit');
-    const incomeData = await incomeRes.json();
-
-    incomeCategoriesChart.data.labels = incomeData.map(item => item.category);
-    incomeCategoriesChart.data.datasets[0].data = incomeData.map(item => item.sum);
-    incomeCategoriesChart.update();
+async function fetchCategoriesData() {
+    try {
+        const response = await fetch('/api/transactions/categories_stats', {
+            credentials: "include"
+        });
+        
+        if (!response.ok) {
+            throw new Error('Ошибка при загрузке данных');
+        }
+        
+        const data = await response.json();
+        // Update categories charts
+        updateCategoriesCharts(data);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка при загрузке данных');
+    }
 }
-fetchCategoryStatistics();
+fetchCategoriesData();
     const incomeCategoriesChart = new Chart(incomeCategoriesCtx, {
         type: 'doughnut', // Круговая диаграмма
         data: {

@@ -146,6 +146,10 @@
                     <textarea class="form-control" name="comment"></textarea>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
         </form>
     </div>
 </div>
@@ -177,7 +181,7 @@
 
       const table = $('#transactionsTable').DataTable({
           ajax: {
-              url: '/api/transaction',
+              url: '/api/transactions',
               data: function (d) {
                   // Добавляем параметры фильтров в запрос
                   d.startDate = startDate;
@@ -191,7 +195,10 @@
                   d.transactionType = $('#transactionTypeFilter').val();
                   d.category = $('#categoryFilter').val();
               },
-              dataSrc: ''
+              dataSrc: '',
+              xhrFields: {
+                  withCredentials: true
+              }
           },
           columns: [
               { data: 'personType' },
@@ -223,58 +230,98 @@
           table.ajax.reload();
       });
 
-      // Удаление транзакции
-      $('#transactionsTable').on('click', '.delete-btn', function () {
-          const id = $(this).data('id');
-          if (confirm("Удалить транзакцию?")) {
-              $.ajax({
-                  url: `/api/delete_transaction?id=${id}`,
-                  type: 'DELETE',
-                  success: function () {
-                      alert("Удалено");
-                      table.ajax.reload();
-                  },
-                  error: function () {
-                      alert("Ошибка удаления");
-                  }
-              });
-          }
-      });
-
       // Редактирование транзакции
       $('#transactionsTable').on('click', '.edit-btn', function () {
           const id = $(this).data('id');
-          $.get(`/api/transaction?id=${id}`, function (data) {
-              $('#editTransactionModal').data('id', id);
-              $('#editTransactionModal input[name="amount"]').val(data.amount);
-              $('#editTransactionModal textarea[name="comment"]').val(data.comment);
-              const modal = new bootstrap.Modal(document.getElementById('editTransactionModal'));
-              modal.show();
+          const button = $(this);
+          button.prop('disabled', true).text('Загрузка...');
+
+          $.ajax({
+              url: `/api/transactions/${id}`,
+              method: 'GET',
+              xhrFields: {
+                  withCredentials: true
+              },
+              success: function (data) {
+                  $('#editTransactionModal').data('id', id);
+                  $('#editTransactionModal input[name="amount"]').val(data.amount);
+                  $('#editTransactionModal textarea[name="comment"]').val(data.comment);
+                  $('#editTransactionModal').modal('show');
+              },
+              error: function (xhr) {
+                  const error = xhr.responseJSON?.message || "Ошибка при загрузке данных транзакции";
+                  alert("Ошибка: " + error);
+              },
+              complete: function() {
+                  button.prop('disabled', false).text('Редактировать');
+              }
           });
       });
 
-      // Обновление транзакции
-      $('#editTransactionForm').submit(function (e) {
+      // Сохранение изменений
+      $('#editTransactionForm').on('submit', function(e) {
           e.preventDefault();
           const id = $('#editTransactionModal').data('id');
-          const formData = {
-              id: id,
-              amount: $(this).find('input[name="amount"]').val(),
-              comment: $(this).find('textarea[name="comment"]').val()
+          const submitButton = $(this).find('button[type="submit"]');
+          const originalButtonText = submitButton.text();
+          
+          submitButton.prop('disabled', true).text('Сохранение...');
+
+          const data = {
+              amount: parseFloat($('#editTransactionModal input[name="amount"]').val()),
+              comment: $('#editTransactionModal textarea[name="comment"]').val()
           };
+
           $.ajax({
-              url: '/api/update_transaction',
-              type: 'PUT',
+              url: `/api/transactions/${id}`,
+              method: 'PUT',
               contentType: 'application/json',
-              data: JSON.stringify(formData),
-              success: function () {
-                  bootstrap.Modal.getInstance(document.getElementById('editTransactionModal')).hide();
+              data: JSON.stringify(data),
+              xhrFields: {
+                  withCredentials: true
+              },
+              success: function() {
+                  alert("Транзакция успешно обновлена");
+                  $('#editTransactionModal').modal('hide');
                   table.ajax.reload();
               },
-              error: function () {
-                  alert("Ошибка обновления");
+              error: function(xhr) {
+                  const error = xhr.responseJSON?.message || "Ошибка при обновлении транзакции";
+                  alert("Ошибка: " + error);
+              },
+              complete: function() {
+                  submitButton.prop('disabled', false).text(originalButtonText);
               }
           });
+      });
+
+      // Удаление транзакции
+      $('#transactionsTable').on('click', '.delete-btn', function () {
+          const id = $(this).data('id');
+          const button = $(this);
+          
+          if (confirm("Удалить транзакцию?")) {
+              button.prop('disabled', true).text('Удаление...');
+              
+              $.ajax({
+                  url: `/api/transactions/${id}`,
+                  type: 'DELETE',
+                  xhrFields: {
+                      withCredentials: true
+                  },
+                  success: function () {
+                      alert("Транзакция успешно удалена");
+                      table.ajax.reload();
+                  },
+                  error: function (xhr) {
+                      const error = xhr.responseJSON?.message || "Ошибка при удалении транзакции";
+                      alert("Ошибка: " + error);
+                  },
+                  complete: function() {
+                      button.prop('disabled', false).text('Удалить');
+                  }
+              });
+          }
       });
   });
 </script>

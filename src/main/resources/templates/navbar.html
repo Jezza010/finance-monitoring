@@ -113,6 +113,7 @@
                         const response = await fetch(`/api/auth/login`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
+                            credentials: "include",
                             body: JSON.stringify({ username, password })
                         });
 
@@ -147,6 +148,7 @@
                         const response = await fetch(`/api/auth/register`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
+                            credentials: "include",
                             body: JSON.stringify({ username, password })
                         });
 
@@ -164,6 +166,46 @@
                         console.error(error);
                     }
                 });
+
+                // Проверка сессии при загрузке страницы
+                async function checkSession() {
+                    try {
+                        const response = await fetch('/api/auth/session', {
+                            credentials: "include"
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            // Показываем имя пользователя и кнопку выхода
+                            const navItem = document.querySelector('#btn-nav-logo').parentElement;
+                            navItem.innerHTML = `
+                                <span class="nav-link">${data.username}</span>
+                                <button class="btn btn-link nav-link" id="logoutBtn">Выйти</button>
+                            `;
+                            
+                            // Добавляем обработчик для кнопки выхода
+                            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                                try {
+                                    const response = await fetch('/api/auth/logout', {
+                                        method: 'POST',
+                                        credentials: "include"
+                                    });
+                                    
+                                    if (response.ok) {
+                                        window.location.reload();
+                                    }
+                                } catch (error) {
+                                    console.error('Ошибка при выходе:', error);
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при проверке сессии:', error);
+                    }
+                }
+
+                // Проверяем сессию при загрузке страницы
+                checkSession();
 
             </script>
 <script src="../static/js/script.js"></script>
